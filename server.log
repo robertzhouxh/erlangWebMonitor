@@ -1,0 +1,110 @@
+Eshell V7.0.3  (abort with ^G)
+(testserver@RobertzhouxhsMacPro)1> myapp:9 starting
+(testserver@RobertzhouxhsMacPro)1> Server start with port 8000 Success!
+(testserver@RobertzhouxhsMacPro)1> 
+BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
+       (v)ersion (k)ill (D)b-tables (d)istribution
+Current code: 3897991
+Old code: 0
+otp_ring0 1176
+init 67360
+prim_eval 640
+prim_inet 111381
+prim_file 63691
+zlib 14936
+prim_zip 28312
+erl_prim_loader 81200
+erlang 89929
+erts_internal 3776
+error_handler 4770
+heart 13052
+error_logger 13037
+gen_event 53893
+gen 13581
+proc_lib 33618
+application_controller 112115
+lists 114937
+gen_server 55500
+application 9667
+application_master 21237
+kernel 15258
+supervisor 77767
+code 20745
+binary 12932
+ets 72651
+filename 43295
+gb_sets 28035
+gb_trees 17106
+hipe_unified_loader 46002
+os 18369
+unicode 38777
+code_server 95122
+rpc 26194
+global 113368
+inet_db 80414
+inet_config 29530
+inet_udp 5239
+inet 72109
+inet_parse 44961
+erl_distribution 4562
+net_kernel 78772
+inet_tcp_dist 23102
+erl_epmd 23828
+auth 24492
+file 48219
+inet_tcp 6461
+gen_tcp 7226
+global_group 59436
+file_server 15907
+standard_error 10559
+supervisor_bridge 6369
+user_sup 4913
+user_drv 43973
+user 37734
+shell 95633
+queue 22525
+kernel_config 7205
+error_logger_tty_h 18170
+c 53305
+erl_eval 95520
+orddict 9541
+file_io_server 54004
+myapp 1536
+beam_lib 69064
+ram_file 23835
+erl_parse 263614
+erl_anno 17466
+erl_lint 341340
+epp 102321
+ordsets 5943
+proplists 16689
+dict 30944
+erl_scan 119154
+sets 22526
+io 20794
+ranch_app 2017
+io_lib 31417
+ranch_sup 1376
+io_lib_format 49235
+ranch_server 7947
+cowboy_app 927
+cowboy_sup 1214
+cowboy_clock 12608
+calendar 17030
+io_lib_pretty 57845
+manager_app 1308
+cowboy_router 18633
+cowboy 2317
+ranch 5979
+ranch_tcp 5033
+ranch_listener_sup 2209
+ranch_conns_sup 16785
+ranch_acceptors_sup 2702
+ranch_acceptor 2760
+manager_sup 1083
+otp_internal 73714
+string 17248
+erl_internal 14240
+
+BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
+       (v)ersion (k)ill (D)b-tables (d)istribution

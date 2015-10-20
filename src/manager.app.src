@@ -1,0 +1,13 @@
+{application, manager,
+[
+ {description, "This is a cowboy application with pure rebar"},
+ {vsn, "0.1.0"},
+ {registered, []},
+ {applications, [
+     kernel,
+     stdlib,
+     cowboy
+   ]},
+ {mod, { manager_app, []}},
+ {env, [{http_port, 8080}]}
+]}.
