@@ -20,13 +20,13 @@
 %%------------------------------------------------------------------------------
 -spec start() -> ok | {error, any()}.
 start() ->
-  ok = application:start(crypto),
-  ok = application:start(ranch),
-  ok = application:start(cowlib),
-  ok = application:start(cowboy),
+    ok = application:start(crypto),
+    ok = application:start(ranch),
+    ok = application:start(cowlib),
+    ok = application:start(cowboy),
 
-  io:format("~p:~p starting~n", [?MODULE, ?LINE]),
-  application:start(manager).
+    io:format("~p:~p starting~n", [?MODULE, ?LINE]),
+    application:start(manager).
 
 %%------------------------------------------------------------------------------
 %% @doc Get environment

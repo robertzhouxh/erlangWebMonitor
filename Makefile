@@ -5,20 +5,30 @@ BASE_DIR = $(shell pwd)
 REBAR    = $(BASE_DIR)/rebar
 DIST     = $(BASE_DIR)/rel/$(APP)
 
-all: compile
 
-compile: deps
-	@$(REBAR) compile
+all: deps compile
 
 deps:
 	@$(REBAR) get-deps
 
-update-deps:
-	@$(REBAR) update-deps
+compile:
+	@$(REBAR) compile
 
 rel: compile
-	# @cd rel && $(REBAR) generate -f
+	#@cd rel && $(REBAR) generate -f
 	$(REBAR) generate
+
+xref:
+	@$(REBAR) xref skip_deps=true
 
 edoc:
 	@$(REBAR) doc
+
+clean:
+	@$(REBAR) clean
+
+relclean:
+	rm -fr rel/manager
+
+distclean: clean relclean
+	@$(REBAR) delete-deps
