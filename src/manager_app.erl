@@ -71,7 +71,8 @@ start(_Type, Args) ->
     %% ProtoOpts2 ===> [{env, [{dispatch, routes(Routes)}]}, {compress, true}]
     ProtoOpts2    = prop_replace(env, ProtoOpts, ProtoEnvOpts),
 
-    io:format("~p:~p starting erlangWebmonitor server on prort <  ~p  > ~n", [?MODULE, ?LINE, 8080]),
+    %% io:format("~p:~p starting erlangWebmonitor server on prort <  ~p  > ~n", [?MODULE, ?LINE, 8080]),
+    lager:info("erlangWebmonitor starting ... on ===> ~p", [TransOpts]),
     cowboy:start_http(http, NbAcceptors, TransOpts, ProtoOpts2),
 
     %% you can start anyother server at this pointi ===> xxx_server:start_link(),
