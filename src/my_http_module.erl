@@ -10,62 +10,59 @@
 -export([my_http_handler/1]).
 
 my_http_handler(Req) ->
-    lager:info("~p:~p ===> process starting ...", [?MODULE, ?LINE]),
-
-    {Action, _} = cowboy_req:binding(action, Req),
-    {Method, _} = cowboy_req:method(Req),
-    HasBody = cowboy_req:has_body(Req),
+    {Action, Req2} = cowboy_req:binding(action, Req),
+    {Method, Req3} = cowboy_req:method(Req2),
+    HasBody = cowboy_req:has_body(Req3),
 
     case HasBody of
         true ->
-           Payload = get_body(Req);
+           Payload = get_body(Req3);
         false ->
            Payload = <<"">>
     end,
 
     lager:info("get http request body: ===========>  ~p ", [Payload]),
-
-    %% do not use list_to_item to create atom dynamicly
-    Methodlist = binary_to_list(Method),
-
-    Body = case Action of
-               <<"login">> when Methodlist =:= "POST" ->
-                   lager:info("starting ~p process", [Action]),
-                   case login_handler(Req, Payload) of
-                       {ok, Resp} ->
-                           Resp;
-                       {error, Resp} ->
-                           Resp
-                   end;
-               <<"logout">> when Methodlist =:= "GET" ->
-                   lager:info("starting ~p process", [Action]),
-                   <<"ok">>;
-               <<"users">> when Methodlist =:= "GET" ->
-                   lager:info("starting ~p process", [Action]),
-                   <<"ok">>;
-               <<"online">> when Methodlist =:= "GET" ->
-                   lager:info("starting ~p process", [Action]),
-                   <<"ok">>;
-               _ ->
-                   lager:info("Invalid Request For ~p", [Action]),
-                   <<"ok">>
-           end,
-
-    {ok, #sm_response{status  = 200,
-                      headers = [{<<"content-type">>, <<"text/plain">>}],
+    %% do not use list_to_item to create atom dynamically
+    {Status, Body, Cookies, Headers} = enter_handlers(Action,
+                                                      binary_to_list(Method),
+                                                      Req3,
+                                                      Payload
+                                                     ),
+    {ok, #sm_response{status  = Status,
+                      headers = Headers,
                       body    = Body,
-                      cookies = []}}.
-
+                      cookies = Cookies}}.
 
 %% Handlers
-login_handler(Req, Body) ->
-    ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}, {domain, <<"localhost">>}]),
-    ok = cowboy_session_config:set([
-                                    {cookie_name, <<"sessionid">>},
-                                    {expire, 86400}
-                                   ]),
+enter_handlers(Action, Methodlist, Req, Payload) ->
+    case Action of
+        <<"login">> when Methodlist =:= "POST" ->
+            lager:info("starting ~p process", [Action]),
+            case login_handler(Req, Payload) of
+                {ok, Resp} ->
+                    {200,
+                     Resp,
+                     [#sm_cookie{name = <<"sessionid">>, value = <<"xxx">>, domain = <<"localhost">>, path = <<"/">>, max_age = 3600}],
+                     [{<<"content-type">>, <<"application/json">>}]};
+                {error, Resp} ->
+                    redirect_to("/index.html")
+            end;
+        <<"logout">> when Methodlist =:= "GET" ->
+            lager:info("starting ~p process", [Action]),
+            {200, <<"ok">>, [], []};
+        <<"users">> when Methodlist =:= "GET" ->
+            lager:info("starting ~p process", [Action]),
+            {200, <<"ok">>, [], []};
+        <<"online">> when Methodlist =:= "GET" ->
+            lager:info("starting ~p process", [Action]),
+            {200, <<"ok">>, [], []};
+        _ ->
+            lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
+            redirect_to("/")
+    end.
 
-    {ok, _} = cowboy_session:set(<<"sessionid">>, "sessionidvalue", Req),
+login_handler(Req, Body) ->
+    {ok, _} = cowboy_session:set(<<"robertzhouxh">>, "xxxxxxxxxxxxxxxxxxxxxxxx", Req),
     {ok, <<"successfully">>}.
 
 
@@ -79,3 +76,7 @@ get_body(Req, Body) ->
         {more, Data, Req1} ->
             get_body(Req1, Body ++ Data)
     end.
+
+%% {ok, Req2} = cowboy_req:reply(302, [{<<"Location">>, Location}], Req),
+redirect_to(Location) ->
+    {302, <<>>, [], [{<<"Location">>, Location}]}.
