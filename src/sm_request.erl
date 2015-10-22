@@ -16,6 +16,8 @@ handle(Req, State=#state{options=Opts}) ->
     {module, Module}     = proplists:lookup(module, Opts),
     {function, Function} = proplists:lookup(function, Opts),
 
+    lager:info("+++++++++++++++++ Module: ~p", [Module]),
+
     case proplists:lookup(protocol, Opts) of
         {protocol, Protocol} ->
             Body = get_body(Req),
@@ -27,7 +29,20 @@ handle(Req, State=#state{options=Opts}) ->
                          _                              -> text
                      end,
             Headers = [{<<"content-type">>, ContentType}],
-            Decoded = Protocol:decode(Body, Format),
+
+            %% jsx:decode(<<"{\"library\": \"jsx\", \"awesome\": true}">>).
+            %% decode the Json Object into Erlang term()
+
+            lager:info("+++++++++++++++++ protocol: ~p", [Protocol]),
+            lager:info("+++++++++++++++++ formate: ~p", [Format]),
+
+            Decoded = case cowboy_req:method(Req)  of
+                          <<"POST">> -> Protocol:decode(Body, Format);
+                          <<"PUT">> -> Protocol:decode(Body, Format);
+                          _ -> <<>>
+                      end,
+
+            lager:info("+++++++++++++++++ decoded: ~p", [Decoded]),
 
             case Protocol:supports_format(Format) of
                 true ->
@@ -37,6 +52,8 @@ handle(Req, State=#state{options=Opts}) ->
                         {ok, Reply} ->
                             Encoded = Protocol:encode(Reply, Format),
                             {ok, get_response(#sm_response{status=200, headers=Headers, body=Encoded}, Req), State};
+
+                        %% return the #sm_response record as well as the Reply body
                         {ok, Reply, Response=#sm_response{}} ->
                             Encoded = Protocol:encode(Reply, Format),
                             RespHeaders = Response#sm_response.headers,
@@ -55,6 +72,7 @@ handle(Req, State=#state{options=Opts}) ->
             case Module:Function(Req) of
                 ok ->
                     {ok, get_response(#sm_response{status=200}, Req), State};
+
                 {ok, Response=#sm_response{}} ->
                     {ok, get_response(Response, Req), State}
             end
