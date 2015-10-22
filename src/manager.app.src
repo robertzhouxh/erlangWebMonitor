@@ -9,7 +9,7 @@
     lager,
     cowboy,
     gproc,
-    uuid,          
+    uuid,
     cowboy_session
    ]},
   {mod, {manager_app, [
@@ -20,7 +20,7 @@
       {"/",             {priv_file, manager, "static/index.html"}},
       {"/assets/[...]", {priv_dir, manager, "static/assets"}},
       {"/js/[...]",     {priv_dir, manager, "static/js"}},
-      {"/v1/:action",   {request,   my_http_module,      get_user}},
+      {"/v1/:action",   {request, my_http_module, my_http_handler}},
       {"/v1/ws",        {websocket, my_websocket_module, sm_protocol_bert}}]}
   ]}},
  {env, []}

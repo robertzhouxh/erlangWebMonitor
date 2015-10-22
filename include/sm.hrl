@@ -2,15 +2,15 @@
 -define(SM_HRL, 1).
 
 -record(sm_response, {
-  status=200, 
-  headers=[], 
-  body= <<>>, 
+  status=200,
+  headers=[],
+  body= <<>>,
   cookies=[]
 }).
 
 -record(sm_cookie, {
-  name, 
-  value, 
+  name,
+  value,
   max_age,  %% optional
   domain,   %% optional
   path,     %% optional

@@ -23,6 +23,7 @@ handle(Req, State=#state{options=Opts}) ->
             Format = case ContentType of
                          <<"application/octet-stream">> -> binary;
                          <<"application/binary">>       -> binary;
+                         <<"application/json">>         -> json;
                          _                              -> text
                      end,
             Headers = [{<<"content-type">>, ContentType}],
@@ -62,7 +63,9 @@ handle(Req, State=#state{options=Opts}) ->
 terminate(_Reason, _Req, _State) ->
     ok.
 
-%% Internal
+
+
+%% ---------------------- Internal --------------------------
 
 get_body(Req) ->
     get_body(Req, []).
