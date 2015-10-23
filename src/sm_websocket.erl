@@ -1,5 +1,5 @@
 -module(sm_websocket).
--author("Vitaly Shutko").
+-author("robertzhouxh").
 -behaviour(cowboy_http_handler).
 -behaviour(cowboy_websocket_handler).
 

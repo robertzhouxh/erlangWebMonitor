@@ -29,18 +29,18 @@ enter_handlers(Action, Method, Req, Payload) ->
             login_handler(Req, Payload);
         <<"logout">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            {200, <<"ok">>, [], []};
+            {200, <<"ok">>, [], [], Req};
         <<"users">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
             case check_session(Req) of
                 {undefined, Req2} ->
-                    {200, <<"ok">>, [], [], Req2};
+                    redirect_to(Req2, <<>>, ?LOGIN_URL);
                 {SessionVal, Req2} ->
                     users_handler(Req2)
             end;
         <<"online">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            {200, <<"ok">>, [], []};
+            {200, <<"ok">>, [], [], Req};
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
             redirect_to(Req, Payload, ?INDEX_URL)

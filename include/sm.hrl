@@ -19,5 +19,6 @@
 }).
 
 -define(INDEX_URL, "/").
+-define(LOGIN_URL, "/assets/login.html").
 
 -endif.

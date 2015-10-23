@@ -4,28 +4,17 @@
   {vsn, "0.1.0"},
   {registered, []},
   {applications, [
-    kernel,
-    stdlib,
-    lager,
-    cowboy,
-    gproc,
-    uuid,
-    cowboy_session,
-	bcrypt,
-    jsx
-   ]},
-  {mod, {manager_app, [
-    {ranch,  [{port, 8080}]},
-    {cowboy, [{nb_acceptors, 100},
-              {protocol, [{compress, true}]}]},
-    {routes, [
-      {"/",             {priv_file, manager, "static/index.html"}},
-      {"/assets/[...]", {priv_dir, manager, "static/assets"}},
-      {"/js/[...]",     {priv_dir, manager, "static/js"}},
-      {"/v1/:action",   {request, my_http_module, my_http_handler}},
-      {"/v2/:action",   {request, my_http_proto_module, my_http_proto_handler, sm_protocol_payload}},
-      {"/v1/ws",        {websocket, my_websocket_module, sm_protocol_bert}}]}
-  ]}},
+                  kernel,
+                  stdlib,
+                  lager,
+                  cowboy,
+                  gproc,
+                  uuid,
+                  cowboy_session,
+                  bcrypt,
+                  jsx
+                 ]},
+ {mod, {manager_app, []}},
  {env, []}
 ]}.
 

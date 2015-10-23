@@ -1,5 +1,5 @@
 -module(sm_protocol_bert).
--author("Vitaly Shutko").
+-author("robertzhouxh").
 -behaviour(sm_protocol).
 
 -export([supports_format/1, encode/2, decode/2]).

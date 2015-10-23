@@ -53,11 +53,13 @@
 
 
 %% Setting up
-start(_Type, Args) ->
-    TransOpts     = prop(ranch,  Args, [{port, 8080}]),
-    Routes        = prop(routes, Args, []),
+start(_Type, _Args) ->
+    Opts = application:get_all_env(manager),
+    lager:info("erlangWebmonitor opts : ~p", [Opts]),
+    TransOpts     = prop(ranch,  Opts, [{port, 8080}]),
+    Routes        = prop(routes, Opts, []),
 
-    CowboyOpts    = prop(cowboy, Args, [{nb_acceptors, 100},
+    CowboyOpts    = prop(cowboy, Opts, [{nb_acceptors, 100},
                                         {protocol, [{env, []}, {compress, true}]}
                                        ]),
     NbAcceptors   = prop(nb_acceptors, CowboyOpts),

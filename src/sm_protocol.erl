@@ -1,5 +1,5 @@
 -module(sm_protocol).
--author("Vitaly Shutko").
+-author("robertzhouxh").
 
 -type format() :: 'text' | 'binary'.
 -type data() :: any().
