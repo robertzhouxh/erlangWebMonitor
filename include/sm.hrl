@@ -18,4 +18,6 @@
   http_only %% optional
 }).
 
+-define(INDEX_URL, "/").
+
 -endif.

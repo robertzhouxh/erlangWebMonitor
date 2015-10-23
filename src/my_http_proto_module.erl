@@ -10,9 +10,7 @@
 -export([my_http_proto_handler/2]).
 
 my_http_proto_handler(Decoded, Req) ->
-
     lager:info("~p:~p my_http_proto_handler: +++++++++++++++++  ~p", [?MODULE, ?LINE, Decoded]),
-
     {Action, Req2} = cowboy_req:binding(action, Req),
     {Method, Req3} = cowboy_req:method(Req2),
 
@@ -37,7 +35,11 @@ enter_handlers(Action, Method, Req, Payload) ->
                      [#sm_cookie{name = <<"sessionid">>, value = <<"xxx">>, domain = <<"localhost">>, path = <<"/">>, max_age = 3600}],
                      [{<<"content-type">>, <<"application/json">>}]};
                 {error, Resp} ->
-                    redirect_to(Payload, "/index.html")
+                    {403,
+                     Resp,
+                     [],
+                     [{<<"content-type">>, <<"application/json">>}]}
+
             end;
         <<"logout">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
@@ -50,18 +52,66 @@ enter_handlers(Action, Method, Req, Payload) ->
             {200, <<"ok">>, [], []};
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
-            redirect_to(Payload, "/")
+            redirect_to(Payload, ?INDEX_URL)
     end.
 
-login_handler(Req, Body) ->
-    {ok, _} = cowboy_session:set(<<"robertzhouxh">>, "xxxxxxxxxxxxxxxxxxxxxxxx", Req),
-    %% process the Body
-    %% Erlang term() will be encoded into Json Object
-    %% Reply = jsx:encode([{<<"library">>,<<"derp">>},{<<"awesome">>,<<"nerp">>},{<<"IsAwesome">>,<<"ME">>}]),
-    Reply = [{<<"username">>,<<"robertzhouxh">>}, {<<"awesome">>,<<"yes">>}],
-    {ok, Reply}.
 
+%% Erlang term() will be encoded into Json Object:
+%% jsx:encode([{<<"library">>,<<"derp">>},{<<"awesome">>,<<"nerp">>},{<<"IsAwesome">>,<<"ME">>}]);
+login_handler(Req, Body) ->
+    ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}, {domain, <<"localhost">>}]),
+    ok = cowboy_session_config:set([
+                                    {cookie_name, <<"sessionid">>},
+                                    {expire, 86400}
+                                   ]),
+    [{<<"username">>, Username}, {<<"password">>, Password}] = Body,
+    Src = binary_to_list(Username) ++ ":" ++ binary_to_list(Password),
+    lager:info("~p:~p SRC: ~p", [?MODULE, ?LINE, Src]),
+
+    {ok, Pwdhash} = hash_password("admin:pass"),
+    lager:info("~p:~p Pwdhash: ~p", [?MODULE, ?LINE, Pwdhash]),
+
+    case check_password(Src, Pwdhash) of
+        true -> case cowboy_session:set(<<"sessionid">>, "xxx", Req) of
+                    {ok, _} -> {ok, [{<<"msg">>, <<"Login Successfully!">>}]}
+                end;
+        false -> {error, [{<<"msg">>, <<"Login Failed!">>}]}
+    end.
+
+require_login(Req) ->
+    case get_session(Req) of
+        undefined -> true;
+        Sessionid ->
+            cowboy_session
+    end.
+
+get_session(Req) ->
+    Cookies = cowboy_req:parse_cookies(Req),
+    case lists:keyfind(<<"sessionid">>, 1, Cookies) of
+        false -> undefined;
+        {_, Sessionid} -> Sessionid
+    end.
 
 %% {ok, Req2} = cowboy_req:reply(302, [{<<"Location">>, Location}], Req),
 redirect_to(Reply, Location) ->
     {302, Reply, [], [{<<"Location">>, Location}]}.
+
+%% @Password is the Hash of the right password
+check_password(PasswordAttempt, PasswordHash) ->
+    lager:info("~p:~p check ... PasswordAttempt: ~p", [?MODULE, ?LINE, PasswordAttempt]),
+    lager:info("~p:~p check ... PasswordHash ~p", [?MODULE, ?LINE, PasswordHash]),
+
+    %% StoredPassword = erlang:binary_to_list(PasswordHash),
+    StoredPassword = PasswordHash,
+    lager:info("~p:~p check ... StoredPassword ~p", [?MODULE, ?LINE, StoredPassword]),
+    compare_password(PasswordAttempt, StoredPassword).
+
+
+compare_password(PasswordAttempt, PasswordHash) ->
+    {ok, PasswordHash} =:= bcrypt:hashpw(PasswordAttempt, PasswordHash).
+
+
+%% On success, returns {ok, Hash}.
+hash_password(Password)->
+    {ok, Salt} = bcrypt:gen_salt(),
+    bcrypt:hashpw(Password, Salt).

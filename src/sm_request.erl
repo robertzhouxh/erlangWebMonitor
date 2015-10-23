@@ -29,11 +29,14 @@ handle(Req, State=#state{options=Opts}) ->
                           true -> [{<<"content-type">>, <<"text/plain">>}];
                           false -> [{<<"content-type">>, ContentType}]
                       end,
-            Decoded = case cowboy_req:method(Req)  of
+            {Method, _} = cowboy_req:method(Req),
+            Decoded = case Method of
                           <<"POST">> -> Protocol:decode(Body, Format);
                           <<"PUT">> -> Protocol:decode(Body, Format);
                           _ -> <<>>
                       end,
+            lager:info("~p:~p ===> ~nformat:~p~n headers:~p~n Decoded:~p~n", [?MODULE, ?LINE, Format, Headers, Decoded]),
+
             case Protocol:supports_format(Format) of
                 true ->
                     case Module:Function(Decoded, Req) of

@@ -46,7 +46,7 @@ enter_handlers(Action, Methodlist, Req, Payload) ->
                      [#sm_cookie{name = <<"sessionid">>, value = <<"xxx">>, domain = <<"localhost">>, path = <<"/">>, max_age = 3600}],
                      [{<<"content-type">>, <<"application/json">>}]};
                 {error, Resp} ->
-                    redirect_to("/index.html")
+                    redirect_to("/")
             end;
         <<"logout">> when Methodlist =:= "GET" ->
             lager:info("starting ~p process", [Action]),

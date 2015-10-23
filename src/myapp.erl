@@ -28,6 +28,7 @@ start() ->
     application:start(gproc),
     application:start(uuid),
     application:start(cowboy_session),
+    application:start(bcrypt),
 
 
     io:format("~p:~p starting~n", [?MODULE, ?LINE]),

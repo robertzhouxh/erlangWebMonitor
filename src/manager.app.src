@@ -11,6 +11,7 @@
     gproc,
     uuid,
     cowboy_session,
+	bcrypt,
     jsx
    ]},
   {mod, {manager_app, [
