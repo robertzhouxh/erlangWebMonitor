@@ -10,6 +10,7 @@
 -export([my_http_handler/1]).
 
 my_http_handler(Req) ->
+
     {Action, Req2} = cowboy_req:binding(action, Req),
     {Method, Req3} = cowboy_req:method(Req2),
     HasBody = cowboy_req:has_body(Req3),
@@ -21,7 +22,7 @@ my_http_handler(Req) ->
            Payload = <<>>
     end,
 
-    lager:info("get http request body: ===========>  ~p ", [Payload]),
+    lager:info("~p:~p my_http_proto_handler: +++++++++++++++++  ~p", [?MODULE, ?LINE, Payload]),
     %% do not use list_to_item to create atom dynamically
     {Status, Body, Cookies, Headers} = enter_handlers(Action,
                                                       binary_to_list(Method),

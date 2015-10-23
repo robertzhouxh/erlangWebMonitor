@@ -15,9 +15,6 @@ init({_Transport, _Protocol}, Req, Opts) ->
 handle(Req, State=#state{options=Opts}) ->
     {module, Module}     = proplists:lookup(module, Opts),
     {function, Function} = proplists:lookup(function, Opts),
-
-    lager:info("+++++++++++++++++ Module: ~p", [Module]),
-
     case proplists:lookup(protocol, Opts) of
         {protocol, Protocol} ->
             Body = get_body(Req),
@@ -28,22 +25,15 @@ handle(Req, State=#state{options=Opts}) ->
                          <<"application/json">>         -> json;
                          _                              -> text
                      end,
-            Headers = [{<<"content-type">>, ContentType}],
-
-            %% jsx:decode(<<"{\"library\": \"jsx\", \"awesome\": true}">>).
-            %% decode the Json Object into Erlang term()
-
-            lager:info("+++++++++++++++++ protocol: ~p", [Protocol]),
-            lager:info("+++++++++++++++++ formate: ~p", [Format]),
-
+            Headers = case ContentType =:= undefined of
+                          true -> [{<<"content-type">>, <<"text/plain">>}];
+                          false -> [{<<"content-type">>, ContentType}]
+                      end,
             Decoded = case cowboy_req:method(Req)  of
                           <<"POST">> -> Protocol:decode(Body, Format);
                           <<"PUT">> -> Protocol:decode(Body, Format);
                           _ -> <<>>
                       end,
-
-            lager:info("+++++++++++++++++ decoded: ~p", [Decoded]),
-
             case Protocol:supports_format(Format) of
                 true ->
                     case Module:Function(Decoded, Req) of
@@ -64,7 +54,7 @@ handle(Req, State=#state{options=Opts}) ->
                             {ok, get_response(Response#sm_response{headers=RespHeaders1, body=Encoded}, Req), State}
                     end;
                 false ->
-                    io:format("Protocol ~p doesn't support ~p format~n", [Protocol, Format]),
+                    lager:error("~p:~p Protocol ~p doesn't support ~p format~n", [?MODULE, ?LINE, Protocol, Format]),
                     {ok, get_response(#sm_response{status=400}, Req), State}
             end;
 

@@ -16,13 +16,11 @@ my_http_proto_handler(Decoded, Req) ->
     {Action, Req2} = cowboy_req:binding(action, Req),
     {Method, Req3} = cowboy_req:method(Req2),
 
-
     {Status, Reply, Cookies, Headers} = enter_handlers(Action,
                                                       binary_to_list(Method),
                                                       Req3,
                                                       Decoded
                                                      ),
-    lager:info("~p:~p return to the framework: +++++++++++++++++  ~p", [?MODULE, ?LINE, Reply]),
     {ok, Reply, #sm_response{status  = Status,
                       headers = Headers,
                       cookies = Cookies}}.
@@ -39,7 +37,7 @@ enter_handlers(Action, Method, Req, Payload) ->
                      [#sm_cookie{name = <<"sessionid">>, value = <<"xxx">>, domain = <<"localhost">>, path = <<"/">>, max_age = 3600}],
                      [{<<"content-type">>, <<"application/json">>}]};
                 {error, Resp} ->
-                    redirect_to("/index.html")
+                    redirect_to(Payload, "/index.html")
             end;
         <<"logout">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
@@ -52,7 +50,7 @@ enter_handlers(Action, Method, Req, Payload) ->
             {200, <<"ok">>, [], []};
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
-            redirect_to("/")
+            redirect_to(Payload, "/")
     end.
 
 login_handler(Req, Body) ->
@@ -65,5 +63,5 @@ login_handler(Req, Body) ->
 
 
 %% {ok, Req2} = cowboy_req:reply(302, [{<<"Location">>, Location}], Req),
-redirect_to(Location) ->
-    {302, "hello, world", [], [{<<"Location">>, Location}]}.
+redirect_to(Reply, Location) ->
+    {302, Reply, [], [{<<"Location">>, Location}]}.
