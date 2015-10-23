@@ -32,13 +32,18 @@ enter_handlers(Action, Method, Req, Payload) ->
             {200, <<"ok">>, [], []};
         <<"users">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            {200, <<"ok">>, [], []};
+            case check_session(Req) of
+                {undefined, Req2} ->
+                    {200, <<"ok">>, [], [], Req2};
+                {SessionVal, Req2} ->
+                    users_handler(Req2)
+            end;
         <<"online">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
             {200, <<"ok">>, [], []};
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
-            redirect_to(Payload, ?INDEX_URL)
+            redirect_to(Req, Payload, ?INDEX_URL)
     end.
 
 
@@ -69,6 +74,26 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
                   Req}
     end.
 
+
+users_handler(Req) ->
+    %% fetch the users from the mysql blablabla ...
+    Resp = [{<<"username">>, <<"alice">>}, {<<"username">>, <<"bob">>}, {<<"username">>, <<"charlie">>}],
+    {200,
+     Resp,
+     [],
+     [{<<"content-type">>, <<"application/json">>}],
+     Req}.
+
+
+
+%% ------------------------------------------------------------------------------------------------------
+check_session(Req) ->
+    {SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req),
+    {SessionVal, Req3} = cowboy_session:get(SessionId, Req2),
+    lager:info("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, SessionId, SessionVal]),
+    {SessionVal, Req3}.
+
+
 set_session(Req) ->
     SessionId = uuid:v4(),
     lager:info("~p:~p get the SessionId:~p", [?MODULE, ?LINE, SessionId]),
@@ -77,8 +102,8 @@ set_session(Req) ->
     {ok, Req2}.
 
 %% {ok, Req2} = cowboy_req:reply(302, [{<<"Location">>, Location}], Req),
-redirect_to(Reply, Location) ->
-    {302, Reply, [], [{<<"Location">>, Location}]}.
+redirect_to(Req, Reply, Location) ->
+    {302, Reply, [], [{<<"Location">>, Location}], Req}.
 
 %% @Password is the Hash of the right password
 check_password(PasswordAttempt, PasswordHash) ->
