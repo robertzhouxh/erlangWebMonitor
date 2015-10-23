@@ -47,14 +47,14 @@ handle(Req, State=#state{options=Opts}) ->
                             {ok, get_response(#sm_response{status=200, headers=Headers, body=Encoded}, Req), State};
 
                         %% return the #sm_response record as well as the Reply body
-                        {ok, Reply, Response=#sm_response{}} ->
+                        {ok, Reply, Response=#sm_response{}, ReqTail} ->
                             Encoded = Protocol:encode(Reply, Format),
                             RespHeaders = Response#sm_response.headers,
                             RespHeaders1 = case proplists:lookup(<<"content-type">>, RespHeaders) of
                                                none -> RespHeaders ++ Headers;
                                                _    -> RespHeaders
                                            end,
-                            {ok, get_response(Response#sm_response{headers=RespHeaders1, body=Encoded}, Req), State}
+                            {ok, get_response(Response#sm_response{headers=RespHeaders1, body=Encoded}, ReqTail), State}
                     end;
                 false ->
                     lager:error("~p:~p Protocol ~p doesn't support ~p format~n", [?MODULE, ?LINE, Protocol, Format]),
