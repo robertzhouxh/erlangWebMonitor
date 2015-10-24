@@ -10,7 +10,7 @@
 -export([my_http_proto_handler/2]).
 
 my_http_proto_handler(Decoded, Req) ->
-    lager:info("~p:~p my_http_proto_handler: +++++++++++++++++  ~p", [?MODULE, ?LINE, Decoded]),
+    lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]),
     {Action, Req2} = cowboy_req:binding(action, Req),
     {Method, Req3} = cowboy_req:method(Req2),
 
@@ -19,6 +19,9 @@ my_http_proto_handler(Decoded, Req) ->
                                                       Req3,
                                                       Decoded
                                                      ),
+
+    lager:info("~p:~p tobe sent to sm:  ~p", [?MODULE, ?LINE, Reply]),
+
     {ok, Reply, #sm_response{status  = Status, headers = Headers, cookies = Cookies}, ReqTail}.
 
 %% Handlers
@@ -32,12 +35,13 @@ enter_handlers(Action, Method, Req, Payload) ->
             {200, <<"ok">>, [], [], Req};
         <<"users">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            case check_session(Req) of
-                {undefined, Req2} ->
-                    redirect_to(Req2, <<>>, ?LOGIN_URL);
-                {SessionVal, Req2} ->
-                    users_handler(Req2)
-            end;
+            users_handler(Req);
+            %% case check_session(Req) of
+            %%     {undefined, Req2} ->
+            %%         redirect_to(Req2, <<>>, ?LOGIN_URL);
+            %%     {SessionVal, Req2} ->
+            %%         users_handler(Req2)
+            %% end;
         <<"online">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
             {200, <<"ok">>, [], [], Req};
@@ -49,6 +53,12 @@ enter_handlers(Action, Method, Req, Payload) ->
 
 %% Erlang term() will be encoded into Json Object:
 %% jsx:encode([{<<"library">>,<<"derp">>},{<<"awesome">>,<<"nerp">>},{<<"IsAwesome">>,<<"ME">>}]);
+%%     case eredis_pool:q({global, tokens}, ["HMGET", Username, "account", "isPublic"]) of
+%%         {ok, Record} ->
+%%             lager:info("get from the redis server with record:  ~p~n", [Record]);
+%%         {ok, []} ->
+%%             {error, notfound}
+%%     end.
 login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
     ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}, {domain, <<"localhost">>}]),
     ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expire, 86400}]),
@@ -74,15 +84,27 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
                   Req}
     end.
 
-
 users_handler(Req) ->
     %% fetch the users from the mysql blablabla ...
-    Resp = [{<<"username">>, <<"alice">>}, {<<"username">>, <<"bob">>}, {<<"username">>, <<"charlie">>}],
+    Username = <<"zhouxuehao">>,
+    AuthSql = "select password from mqtt_user where username = '%u' limit 1",
+
+    lager:info("authquery: ~p ", [AuthSql]),
+
+    Resp = case emysql:sqlquery(replvar(AuthSql, Username)) of
+              {ok, [Res]} ->
+                  lager:info("~p:~p ~p", [?MODULE, ?LINE, Res]),
+                  Res;
+              {ok, []} ->
+                  []
+          end,
+
     {200,
-     Resp,
+     [{<<"msg">>, <<"Login successfully!">>}],
      [],
      [{<<"content-type">>, <<"application/json">>}],
      Req}.
+
 
 
 
@@ -92,7 +114,6 @@ check_session(Req) ->
     {SessionVal, Req3} = cowboy_session:get(SessionId, Req2),
     lager:info("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, SessionId, SessionVal]),
     {SessionVal, Req3}.
-
 
 set_session(Req) ->
     SessionId = uuid:v4(),
@@ -123,3 +144,6 @@ compare_password(PasswordAttempt, PasswordHash) ->
 hash_password(Password)->
     {ok, Salt} = bcrypt:gen_salt(),
     bcrypt:hashpw(Password, Salt).
+
+replvar(AuthSql, Username) ->
+    re:replace(AuthSql, "%u", Username, [global, {return, list}]).

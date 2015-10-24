@@ -30,6 +30,9 @@ start() ->
     application:start(cowboy_session),
     application:start(bcrypt),
 
+    application:start(emysql),
+    application:start(eredis_pool),
+
 
     io:format("~p:~p starting~n", [?MODULE, ?LINE]),
     application:start(manager).

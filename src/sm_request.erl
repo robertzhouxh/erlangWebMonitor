@@ -23,10 +23,12 @@ handle(Req, State=#state{options=Opts}) ->
                          <<"application/octet-stream">> -> binary;
                          <<"application/binary">>       -> binary;
                          <<"application/json">>         -> json;
-                         _                              -> text
+                         _                              -> json
+                         %% _                              -> text
                      end,
             Headers = case ContentType =:= undefined of
-                          true -> [{<<"content-type">>, <<"text/plain">>}];
+                          %% true -> [{<<"content-type">>, <<"text/plain">>}];
+                          true -> [{<<"content-type">>, <<"application/json">>}];
                           false -> [{<<"content-type">>, ContentType}]
                       end,
             {Method, _} = cowboy_req:method(Req),
@@ -111,5 +113,6 @@ set_cookies([Cookie|Cookies], Req) ->
 
 get_response(#sm_response{status=Status, headers=Headers, body=Body, cookies=Cookies}, Req) ->
     Req2 = set_cookies(Cookies, Req),
+    lager:info("~p:~p ===> Body:~p~n", [?MODULE, ?LINE,  Body]),
     {ok, Req3} = cowboy_req:reply(Status, Headers, Body, Req2),
     Req3.

@@ -12,7 +12,9 @@
                   uuid,
                   cowboy_session,
                   bcrypt,
-                  jsx
+                  jsx,
+                  emysql,
+                  eredis_pool
                  ]},
  {mod, {manager_app, []}},
  {env, []}
