@@ -44,7 +44,7 @@ enter_handlers(Action, Method, Req, Payload) ->
             %% end;
         <<"online">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            {200, <<"ok">>, [], [], Req};
+            online_handler(Req);
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
             redirect_to(Req, Payload, ?INDEX_URL)
@@ -53,12 +53,6 @@ enter_handlers(Action, Method, Req, Payload) ->
 
 %% Erlang term() will be encoded into Json Object:
 %% jsx:encode([{<<"library">>,<<"derp">>},{<<"awesome">>,<<"nerp">>},{<<"IsAwesome">>,<<"ME">>}]);
-%%     case eredis_pool:q({global, tokens}, ["HMGET", Username, "account", "isPublic"]) of
-%%         {ok, Record} ->
-%%             lager:info("get from the redis server with record:  ~p~n", [Record]);
-%%         {ok, []} ->
-%%             {error, notfound}
-%%     end.
 login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
     ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}, {domain, <<"localhost">>}]),
     ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expire, 86400}]),
@@ -98,14 +92,28 @@ users_handler(Req) ->
               {ok, []} ->
                   []
           end,
-
     {200,
-     [{<<"msg">>, <<"Login successfully!">>}],
+     %% [{<<"msg">>, <<"Login successfully!">>}],
+     Resp,
      [],
      [{<<"content-type">>, <<"application/json">>}],
      Req}.
 
 
+online_handler(Req) ->
+    Resp = case eredis_pool:q({global, pool1}, ["GET", <<"foo">>]) of
+               {ok, [Record]} ->
+                   lager:info("get from the redis server with record:  ~p~n", [Record]),
+                   Record;
+               {ok, Tuple} ->
+                   lager:info("get from the redis server with record:  ~p~n", [Tuple]),
+                   Tuple
+           end,
+    {200,
+     Resp,
+     [],
+     [{<<"content-type">>, <<"application/json">>}],
+     Req}.
 
 
 %% ------------------------------------------------------------------------------------------------------

@@ -56,6 +56,8 @@
 start(_Type, _Args) ->
     Opts = application:get_all_env(manager),
     lager:info("erlangWebmonitor opts : ~p", [Opts]),
+    PrivDir = code:priv_dir(manager),
+    lager:info("-------------------: ~p", [PrivDir]),
     TransOpts     = prop(ranch,  Opts, [{port, 8080}]),
     Routes        = prop(routes, Opts, []),
 
@@ -75,6 +77,7 @@ start(_Type, _Args) ->
 
     %% io:format("~p:~p starting erlangWebmonitor server on prort <  ~p  > ~n", [?MODULE, ?LINE, 8080]),
     lager:info("erlangWebmonitor starting ... on ===> ~p", [TransOpts]),
+    %% cowboy:start_https(https, NbAcceptors, TransOpts, ProtoOpts2),
     cowboy:start_http(http, NbAcceptors, TransOpts, ProtoOpts2),
 
     %% you can start anyother server at this pointi ===> xxx_server:start_link(),

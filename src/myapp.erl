@@ -29,7 +29,6 @@ start() ->
     application:start(uuid),
     application:start(cowboy_session),
     application:start(bcrypt),
-
     application:start(emysql),
     application:start(eredis_pool),
 
