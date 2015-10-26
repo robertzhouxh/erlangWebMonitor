@@ -10,8 +10,11 @@
 -export([my_http_proto_handler/2]).
 
 my_http_proto_handler(Decoded, Req) ->
-    lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]),
-    {Action, Req2} = cowboy_req:binding(action, Req),
+    lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]), %% Decoded is inputed by client, for example username and Password.
+    {Action, Req2} = cowboy_req:binding(action, Req),  %% 
+    lager:info("Action------------> ~p~n~n", [Action]),
+    lager:info("Req---------------> ~p~n~n", [Req]),
+    lager:info("Req2--------------> ~p~n~n", [Req2]),
     {Method, Req3} = cowboy_req:method(Req2),
 
     {Status, Reply, Cookies, Headers, ReqTail} = enter_handlers(Action,
@@ -26,6 +29,7 @@ my_http_proto_handler(Decoded, Req) ->
 
 %% Handlers
 enter_handlers(Action, Method, Req, Payload) ->
+    lager:info("Payload--------------> ~p~n~n", [Payload]), %% Payload is Decoded
     case Action of
         <<"login">> when Method =:= "POST" ->
             lager:info("starting ~p process", [Action]),
@@ -80,20 +84,15 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
 
 users_handler(Req) ->
     %% fetch the users from the mysql blablabla ...
-    Username = <<"zhouxuehao">>,
-    AuthSql = "select password from mqtt_user where username = '%u' limit 1",
+    lager:info("~n~nReq in users ----------> ~p~n~n", [Req] ),
+    %% get information of users from table 'pre_ucenter_number' in mysql database
+    TableName = pre_ucenter_members,
+    {ok, UsersInfo} = emysql:select({TableName, [regdate, email, username]}),
+    lager:info("UserInfo ------------------> ~p~n~n", [UsersInfo]),
+    Resp = UsersInfo,
+    lager:info("Resp ------------> ~p~n~n", [Resp]),
 
-    lager:info("authquery: ~p ", [AuthSql]),
-
-    Resp = case emysql:sqlquery(replvar(AuthSql, Username)) of
-              {ok, [Res]} ->
-                  lager:info("~p:~p ~p", [?MODULE, ?LINE, Res]),
-                  Res;
-              {ok, []} ->
-                  []
-          end,
     {200,
-     %% [{<<"msg">>, <<"Login successfully!">>}],
      Resp,
      [],
      [{<<"content-type">>, <<"application/json">>}],
