@@ -80,4 +80,4 @@ get_body(Req, Body) ->
 
 %% {ok, Req2} = cowboy_req:reply(302, [{<<"Location">>, Location}], Req),
 redirect_to(Location) ->
-    {302, <<>>, [], [{<<"Location">>, Location}]}.
+    {302, <<>>, [], [{<<"Location">>, Location}]}.  %% relocate to Location

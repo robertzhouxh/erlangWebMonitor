@@ -9,15 +9,22 @@
 -record(state, {options}).
 
 %% cowboy_http_handler Callbacks
-init({_Transport, _Protocol}, Req, Opts) ->
+init({_Transport, _Protocol}, Req, Opts) ->  %% do nothing, make sure that a reply is sent for every request.
+    lager:info("Opts in init -----------> ~n~p~n", [Opts]),
+    lager:info("Req in init -----------> ~n~p~n", [Req]),
+
     {ok, Req, #state{options=Opts}}.
 
-handle(Req, State=#state{options=Opts}) ->
+handle(Req, State=#state{options=Opts}) ->    
+    lager:info("Opts in Handle -----------> ~n~p~n", [Opts]),
+    lager:info("Req in handle -----------> ~n~p~n", [Req]),    %% same as init function 
     {module, Module}     = proplists:lookup(module, Opts),
     {function, Function} = proplists:lookup(function, Opts),
     case proplists:lookup(protocol, Opts) of
         {protocol, Protocol} ->
+            %% lager:info("Protocol in Handle -----------> ~n~p~n", [Protocol]),
             Body = get_body(Req),
+            %% lager:info("Body in Req -----------> ~n~p~n", [Body]), 
             {ContentType, _} = cowboy_req:header(<<"content-type">>, Req),
             Format = case ContentType of
                          <<"application/octet-stream">> -> binary;
@@ -33,7 +40,7 @@ handle(Req, State=#state{options=Opts}) ->
                       end,
             {Method, _} = cowboy_req:method(Req),
             Decoded = case Method of
-                          <<"POST">> -> Protocol:decode(Body, Format);
+                          <<"POST">> -> Protocol:decode(Body, Format);  %% binary to tuple
                           <<"PUT">> -> Protocol:decode(Body, Format);
                           _ -> <<>>
                       end,
@@ -50,7 +57,7 @@ handle(Req, State=#state{options=Opts}) ->
 
                         %% return the #sm_response record as well as the Reply body
                         {ok, Reply, Response=#sm_response{}, ReqTail} ->
-                            Encoded = Protocol:encode(Reply, Format),
+                            Encoded = Protocol:encode(Reply, Format),     %% tuple to binary
                             RespHeaders = Response#sm_response.headers,
                             RespHeaders1 = case proplists:lookup(<<"content-type">>, RespHeaders) of
                                                none -> RespHeaders ++ Headers;
