@@ -12,8 +12,8 @@
 -define(TableName, pre_ucenter_members).
 
 my_http_proto_handler(Decoded, Req) ->
-    lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]), %% Decoded is inputed by client, for example username and Password.
-    {Action, Req2} = cowboy_req:binding(action, Req),  %% 
+    lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]),
+    {Action, Req2} = cowboy_req:binding(action, Req),   
     lager:info("Action------------> ~n~p~n", [Action]),
     lager:info("Req---------------> ~n~p~n", [Req]),
     lager:info("Req2--------------> ~n~p~n", [Req2]),
@@ -144,7 +144,7 @@ redirect_to(Req, Reply, Location) ->
     {302, Reply, [], [{<<"Location">>, Location}], Req}.
 
 %% @Password is the Hash of the right password
-check_password(PasswordAttempt, PasswordHash) ->  %% the first is raw Password and the second is hash Password with Salt.
+check_password(PasswordAttempt, PasswordHash) -> 
     lager:info("~p:~p check ... PasswordAttempt: ~p", [?MODULE, ?LINE, PasswordAttempt]),
     lager:info("~p:~p check ... PasswordHash ~p", [?MODULE, ?LINE, PasswordHash]),
 
@@ -155,8 +155,8 @@ check_password(PasswordAttempt, PasswordHash) ->  %% the first is raw Password a
 
 
 compare_password(PasswordAttempt, PasswordHash) ->
-    {ok, PasswordHash} =:= bcrypt:hashpw(PasswordAttempt, PasswordHash).  %% verify the Password, and return true or false
-
+    {ok, PasswordHash} =:= bcrypt:hashpw(PasswordAttempt, PasswordHash).
+ 
 %% On success, returns {ok, Hash}.
 hash_password(Password)->
     {ok, Salt} = bcrypt:gen_salt(),
@@ -169,10 +169,13 @@ get_session_from_redis() ->
     eredis_pool:q({global, pool1}, ["select",?DB_INDEX]),
     {ok, SessionIdKeys} = eredis_pool:q({global, pool1},["keys", "*"]), 
     Sessions = lists:map(fun(SessionIdKey) -> 
-                                 eredis_pool:q({global, pool1}, ["HGETALL", SessionIdKey]) end, SessionIdKeys),
+                                 {ok, Sessioni} = eredis_pool:q({global, pool1}, ["HGETALL", SessionIdKey]), 
+                                 Sessioni end, 
+                         SessionIdKeys),
     lager:error("Sessions ########### ~n~p~n", Sessions), 
     {ok, Sessions}.
   
 get_userinfo_from_mysql() ->
     {ok, UsersInfo} = emysql:select({?TableName, [regdate, email, username]}),
     UsersInfo. 
+
