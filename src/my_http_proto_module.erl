@@ -9,7 +9,7 @@
 
 -export([my_http_proto_handler/2]).
 -define(DB_INDEX, 2).
--define(TableName, pre_ucenter_members).
+-define(TABLENAMeTableName, pre_ucenter_members).
 
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]),
@@ -39,7 +39,7 @@ enter_handlers(Action, Method, Req, Payload) ->
             login_handler(Req, Payload);
         <<"logout">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            {200, <<"ok">>, [], [], Req};
+            logout_handle(Req);
         <<"users">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
             users_handler(Req);
@@ -88,6 +88,12 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
                   Req}                                            %% ReqTail
     end.
 
+logout_handler(Req) ->
+    case cowboy_session:expire(Req) of
+        {ok, Req2} ->
+            {200, <<"ok">>, [], [], Req2};
+
+
 users_handler(Req) ->
     %% fetch the users from the mysql blablabla ...
     lager:info("~n~nReq in users ----------> ~p~n~n", [Req] ),
@@ -104,7 +110,6 @@ users_handler(Req) ->
 
 
 online_handler(Req) ->
-    lager:info("------------------------------------------"), 
     Resp = case get_session_from_redis() of
                {ok, [Record]} ->
                    lager:info("get from the redis server with record:  ~p~n", [Record]),
@@ -131,20 +136,18 @@ check_session(Req) ->
     lager:info("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, SessionId, SessionVal]),
     {SessionVal, Req3}.
 
-set_session(Req) ->    %% generate a cookies in the Req 
+set_session(Req) ->    %% generate a cookies in the Req
     SessionId = uuid:v4(),
     lager:info("~p:~p get the SessionId:~p", [?MODULE, ?LINE, SessionId]),
     {ok, Req2} = cowboy_session:set(SessionId, "xxxxxxxxxxx", Req),
-    %% eredis_pool:q({global, pool1}, ["SET", SessionId, SessionVal]),
     lager:info("~p:~p afterXXXXXXXXXXXXXXXXXXXXXXXX ~p", [?MODULE, ?LINE, Req2]),
     {ok, Req2}.
 
-%% {ok, Req2} = cowboy_req:reply(302, [{<<"Location">>, Location}], Req),
 redirect_to(Req, Reply, Location) ->
     {302, Reply, [], [{<<"Location">>, Location}], Req}.
 
 %% @Password is the Hash of the right password
-check_password(PasswordAttempt, PasswordHash) -> 
+check_password(PasswordAttempt, PasswordHash) ->
     lager:info("~p:~p check ... PasswordAttempt: ~p", [?MODULE, ?LINE, PasswordAttempt]),
     lager:info("~p:~p check ... PasswordHash ~p", [?MODULE, ?LINE, PasswordHash]),
 
@@ -156,7 +159,7 @@ check_password(PasswordAttempt, PasswordHash) ->
 
 compare_password(PasswordAttempt, PasswordHash) ->
     {ok, PasswordHash} =:= bcrypt:hashpw(PasswordAttempt, PasswordHash).
- 
+
 %% On success, returns {ok, Hash}.
 hash_password(Password)->
     {ok, Salt} = bcrypt:gen_salt(),
@@ -167,15 +170,15 @@ replvar(AuthSql, Username) ->
 
 get_session_from_redis() ->
     eredis_pool:q({global, pool1}, ["select",?DB_INDEX]),
-    {ok, SessionIdKeys} = eredis_pool:q({global, pool1},["keys", "*"]), 
-    Sessions = lists:map(fun(SessionIdKey) -> 
-                                 {ok, Sessioni} = eredis_pool:q({global, pool1}, ["HGETALL", SessionIdKey]), 
-                                 Sessioni end, 
+    {ok, SessionIdKeys} = eredis_pool:q({global, pool1},["keys", "*"]),
+    Sessions = lists:map(fun(SessionIdKey) ->
+                                 {ok, Sessioni} = eredis_pool:q({global, pool1}, ["HGETALL", SessionIdKey]),
+                                 Sessioni end,
                          SessionIdKeys),
-    lager:error("Sessions ########### ~n~p~n", Sessions), 
+    %% lager:error("Sessions ########### ~n~p~n", Sessions),
     {ok, Sessions}.
-  
+
 get_userinfo_from_mysql() ->
     {ok, UsersInfo} = emysql:select({?TableName, [regdate, email, username]}),
-    UsersInfo. 
+    UsersInfo.
 
