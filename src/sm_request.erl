@@ -10,21 +10,19 @@
 
 %% cowboy_http_handler Callbacks
 init({_Transport, _Protocol}, Req, Opts) ->  %% do nothing, make sure that a reply is sent for every request.
-    lager:info("Opts in init -----------> ~n~p~n", [Opts]),
-    lager:info("Req in init -----------> ~n~p~n", [Req]),
+    %% lager:info("Opts in init -----------> ~n~p~n", [Opts]),
+    %% lager:info("Req in init -----------> ~n~p~n", [Req]),
 
     {ok, Req, #state{options=Opts}}.
 
 handle(Req, State=#state{options=Opts}) ->    
-    lager:info("Opts in Handle -----------> ~n~p~n", [Opts]),
-    lager:info("Req in handle -----------> ~n~p~n", [Req]),    %% same as init function 
+    %% lager:info("Opts in Handle -----------> ~n~p~n", [Opts]),
+    %% lager:info("Req in handle -----------> ~n~p~n", [Req]),    %% same as init function 
     {module, Module}     = proplists:lookup(module, Opts),
     {function, Function} = proplists:lookup(function, Opts),
     case proplists:lookup(protocol, Opts) of
         {protocol, Protocol} ->
-            %% lager:info("Protocol in Handle -----------> ~n~p~n", [Protocol]),
             Body = get_body(Req),
-            %% lager:info("Body in Req -----------> ~n~p~n", [Body]), 
             {ContentType, _} = cowboy_req:header(<<"content-type">>, Req),
             Format = case ContentType of
                          <<"application/octet-stream">> -> binary;
@@ -91,7 +89,7 @@ get_body(Req) ->
     get_body(Req, []).
 get_body(Req, Body) ->
     case cowboy_req:body(Req) of
-        {ok, Data, Req1} ->
+        {ok, Data, _Req1} ->
             Body ++ Data;
         {more, Data, Req1} ->
             get_body(Req1, Body ++ Data)
@@ -122,5 +120,5 @@ get_response(#sm_response{status=Status, headers=Headers, body=Body, cookies=Coo
     Req2 = set_cookies(Cookies, Req),
     lager:info("~p:~p ===> Body:~p~n", [?MODULE, ?LINE,  Body]),
     {ok, Req3} = cowboy_req:reply(Status, Headers, Body, Req2),
-    lager:error("~p:~p ===> req3:~p~n", [?MODULE, ?LINE,  Req3]),
+    %% lager:error("~p:~p ===> req3:~p~n", [?MODULE, ?LINE,  Req3]),
     Req3.

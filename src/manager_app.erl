@@ -55,7 +55,7 @@
 %% Setting up
 start(_Type, _Args) ->
     Opts = application:get_all_env(manager),
-    PrivDir = code:priv_dir(manager),
+    %% PrivDir = code:priv_dir(manager),
     TransOpts     = prop(ranch,  Opts, [{port, 8080}]), %% the port to be connected
     Routes        = prop(routes, Opts, []),             %% routing , dispatch
 
