@@ -64,7 +64,7 @@ enter_handlers(Action, Method, Req, Payload) ->
 %% jsx:encode([{<<"library">>,<<"derp">>},{<<"awesome">>,<<"nerp">>},{<<"IsAwesome">>,<<"ME">>}]);
 login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
     ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}, {domain, <<"localhost">>}]),
-    ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expire, 60}]),
+    ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expire, 86400}]),
     Src = binary_to_list(Username) ++ ":" ++ binary_to_list(Password),
     %% lager:info("~p:~p SRC: ~p", [?MODULE, ?LINE, Src]),
 

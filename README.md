@@ -92,13 +92,16 @@ cat rel/files/sys.config
 ```
 **configure the mysql and redis**
 
-
 1) in ./deps/emysql/src/emysql.app.src :
+
 modify the host and the information of database and table in MySQL
 
-2) in ./deps/eredis_pool/src/eredis_pool.app.src:
+2) in ./deps/eredis_pool/src/eredis_pool.app.src :
+
 add your own pool and relative message, especially in file eredis_pool.app.arc, you maybe change tuple {global_or_local, local/global}, i.e. "local" means to work for localhost, "global" means to work for all host.
 
+you can edit the **manager block** to change the cowboy listenner port and any other options.
+and then execute in the console:
 
 ```
 $ make clean && make relclean && make rel
