@@ -9,7 +9,7 @@
 
 -export([my_http_proto_handler/2]).
 -define(DB_INDEX, 2).
--define(TABLENAMeTableName, pre_ucenter_members).
+-define(TABLENAME, pre_ucenter_members).
 
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]),
@@ -24,8 +24,13 @@ my_http_proto_handler(Decoded, Req) ->
                                                       Req3,
                                                       Decoded
                                                      ),
-
+    lager:info("Req3 ---------------> ~n~p~n", [Req3]),
     lager:info("~p:~p tobe sent to sm:  ~p", [?MODULE, ?LINE, Reply]),
+    lager:info("Status -------------> ~n~p~n", [Status]),
+    lager:info("Reply --------------> ~n~p~n", [Reply]),
+    lager:info("Cookies ------------> ~n~p~n", [Cookies]),
+    lager:info("Headers ------------> ~n~p~n", [Headers]),
+    lager:info("ReqTail ------------> ~n~p~n", [ReqTail]),
 
     {ok, Reply, #sm_response{status  = Status, headers = Headers, cookies = Cookies}, ReqTail}.
 
@@ -39,7 +44,7 @@ enter_handlers(Action, Method, Req, Payload) ->
             login_handler(Req, Payload);
         <<"logout">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            logout_handle(Req);
+            logout_handler(Req);
         <<"users">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
             users_handler(Req);
@@ -49,7 +54,8 @@ enter_handlers(Action, Method, Req, Payload) ->
             %%         redirect_to(Req2, <<>>, ?LOGIN_URL);
             %%     {SessionVal, Req2} ->
             %%         lager:info("Req2----------------> ~n~p~n", [Req2]),
-            %%         users_handler(Req2)
+            %%         users_handler(Req2
+            %%                      )
             %% end;
         <<"online">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
@@ -91,13 +97,14 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
 logout_handler(Req) ->
     case cowboy_session:expire(Req) of
         {ok, Req2} ->
-            {200, <<"ok">>, [], [], Req2};
-
+            lager:info("Req in logout -----------> ~n~p~n", Req2),
+            {200, <<"ok">>, [], [], Req2}
+    end.
 
 users_handler(Req) ->
     %% fetch the users from the mysql blablabla ...
     lager:info("~n~nReq in users ----------> ~p~n~n", [Req] ),
-    UsersInfo = get_userinfo_from_mysql(), 
+    UsersInfo = get_userinfo_from_mysql(),
     %% lager:info("UserInfo ------------------> ~p~n~n", [UsersInfo]),
     Resp = UsersInfo,
     lager:info("Resp ------------> ~p~n~n", [Resp]),
@@ -179,6 +186,6 @@ get_session_from_redis() ->
     {ok, Sessions}.
 
 get_userinfo_from_mysql() ->
-    {ok, UsersInfo} = emysql:select({?TableName, [regdate, email, username]}),
+    {ok, UsersInfo} = emysql:select({?TABLENAME, [regdate, email, username]}),
     UsersInfo.
 
