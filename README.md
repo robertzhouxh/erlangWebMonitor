@@ -90,7 +90,7 @@ cat rel/files/sys.config
 	]}
 ]}
 ```
-** configure the mysql and redis **
+**configure the mysql and redis**
 in ./deps/emysql/src/emysql.app.src :
 modify the host and the information of database and table in MySQL
 in ./deps/eredis_pool/src/eredis_pool.app.src :

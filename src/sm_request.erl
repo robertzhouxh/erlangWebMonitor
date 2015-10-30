@@ -122,4 +122,5 @@ get_response(#sm_response{status=Status, headers=Headers, body=Body, cookies=Coo
     Req2 = set_cookies(Cookies, Req),
     lager:info("~p:~p ===> Body:~p~n", [?MODULE, ?LINE,  Body]),
     {ok, Req3} = cowboy_req:reply(Status, Headers, Body, Req2),
+    lager:error("~p:~p ===> req3:~p~n", [?MODULE, ?LINE,  Req3]),
     Req3.

@@ -8,15 +8,14 @@
 -include("sm.hrl").
 
 -export([my_http_proto_handler/2]).
+
+%% information fo databases 
 -define(DB_INDEX, 2).
 -define(TABLENAME, pre_ucenter_members).
 
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]),
     {Action, Req2} = cowboy_req:binding(action, Req),   
-    lager:info("Action------------> ~n~p~n", [Action]),
-    lager:info("Req---------------> ~n~p~n", [Req]),
-    lager:info("Req2--------------> ~n~p~n", [Req2]),
     {Method, Req3} = cowboy_req:method(Req2),
 
     {Status, Reply, Cookies, Headers, ReqTail} = enter_handlers(Action,
@@ -24,20 +23,19 @@ my_http_proto_handler(Decoded, Req) ->
                                                       Req3,
                                                       Decoded
                                                      ),
-    lager:info("Req3 ---------------> ~n~p~n", [Req3]),
+    %% lager:info("Req3 ---------------> ~n~p~n", [Req3]),
     lager:info("~p:~p tobe sent to sm:  ~p", [?MODULE, ?LINE, Reply]),
-    lager:info("Status -------------> ~n~p~n", [Status]),
-    lager:info("Reply --------------> ~n~p~n", [Reply]),
-    lager:info("Cookies ------------> ~n~p~n", [Cookies]),
-    lager:info("Headers ------------> ~n~p~n", [Headers]),
-    lager:info("ReqTail ------------> ~n~p~n", [ReqTail]),
+    %% lager:info("Status -------------> ~n~p~n", [Status]),
+    %% lager:info("Reply --------------> ~n~p~n", [Reply]),
+    %% lager:info("Cookies ------------> ~n~p~n", [Cookies]),
+    %% lager:info("Headers ------------> ~n~p~n", [Headers]),
+    %% lager:info("ReqTail ------------> ~n~p~n", [ReqTail]),
 
     {ok, Reply, #sm_response{status  = Status, headers = Headers, cookies = Cookies}, ReqTail}.
 
 %% Handlers
 enter_handlers(Action, Method, Req, Payload) ->
-    lager:info("Payload--------------> ~n~p~n", [Payload]), %% Payload is Decoded
-    lager:info("Req -----------------> ~n~p~n", [Req]),
+    %% lager:info("Req in enter_handlers-----------------> ~n~p~n", [Req]),
     case Action of
         <<"login">> when Method =:= "POST" ->
             lager:info("starting ~p process", [Action]),
@@ -47,22 +45,30 @@ enter_handlers(Action, Method, Req, Payload) ->
             logout_handler(Req);
         <<"users">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            users_handler(Req);
-            %% case check_session(Req) of
-            %%     {undefined, Req2} ->
-            %%         lager:info("Reg2----------------> ~n~p~n", [Req2]),
-            %%         redirect_to(Req2, <<>>, ?LOGIN_URL);
-            %%     {SessionVal, Req2} ->
-            %%         lager:info("Req2----------------> ~n~p~n", [Req2]),
-            %%         users_handler(Req2
-            %%                      )
-            %% end;
+            %% users_handler(Req);
+            case check_session(Req) of
+                {undefined, Req2} ->
+                    lager:info("Reg2----------------> ~n~p~n", [Req2]),
+                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                {SessionVal, Req2} ->
+                    lager:info("Req2----------------> ~n~p~n", [Req2]),
+                    users_handler(Req2)
+            end;
         <<"online">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            online_handler(Req);
+            %% online_handler(Req);
+            case check_session(Req) of
+                {undefined, Req2} ->
+                    lager:info("Reg2----------------> ~n~p~n", [Req2]),
+                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                {SessionVal, Req2} ->
+                    lager:info("Req2----------------> ~n~p~n", [Req2]),
+                    online_handler(Req2)
+            end;
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
             redirect_to(Req, Payload, ?INDEX_URL)
+
     end.
 
 
@@ -78,9 +84,9 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
     lager:info("~p:~p Pwdhash: ~p", [?MODULE, ?LINE, Pwdhash]),
 
     case check_password(Src, Pwdhash) of    %% verify the Password
-        true -> case set_session(Req) of    %% after this step, Req3 adds a cookie, but 
+        true -> case set_session(Req) of  
                     {ok, Req3}->
-                        lager:info("Req3--------------> ~n~p~n", [Req3]),
+                        lager:info("Req3-(after set_session)-------------> ~n~p~n", [Req3]),
                         {200,
                          [{<<"msg">>, <<"Login successfully!">>}],
                          [],
@@ -103,7 +109,7 @@ logout_handler(Req) ->
 
 users_handler(Req) ->
     %% fetch the users from the mysql blablabla ...
-    lager:info("~n~nReq in users ----------> ~p~n~n", [Req] ),
+    %% lager:info("~n~nReq in users ----------> ~p~n~n", [Req] ),
     UsersInfo = get_userinfo_from_mysql(),
     %% lager:info("UserInfo ------------------> ~p~n~n", [UsersInfo]),
     Resp = UsersInfo,
@@ -135,19 +141,21 @@ online_handler(Req) ->
 
 %% ------------------------------------------------------------------------------------------------------
 check_session(Req) ->
-    lager:info("Req  in check_session ---> ~n~p~n", [Req]),
+    lager:error("Req  in check_session ---> ~n~p~n", [Req]),
     {SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req), %% read the value of cookie
-    lager:info("SessionId--------------> ~n~p~n", [SessionId]),
-    lager:info("Req2-------------------> ~n~p~n",[Req2]),
-    {SessionVal, Req3} = cowboy_session:get(SessionId, Req2),
-    lager:info("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, SessionId, SessionVal]),
-    {SessionVal, Req3}.
+    lager:error("SessionId--------------> ~n~p~n", [SessionId]),
+    {SomeVal, Req3} = cowboy_session:get(<<"somekey">>, Req2),
+    lager:error("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, <<"somekey">>, SomeVal]),
+    {SomeVal, Req3}.
+    %% {"xxxxxxxxxxx", Req3}.
 
 set_session(Req) ->    %% generate a cookies in the Req
-    SessionId = uuid:v4(),
-    lager:info("~p:~p get the SessionId:~p", [?MODULE, ?LINE, SessionId]),
-    {ok, Req2} = cowboy_session:set(SessionId, "xxxxxxxxxxx", Req),
-    lager:info("~p:~p afterXXXXXXXXXXXXXXXXXXXXXXXX ~p", [?MODULE, ?LINE, Req2]),
+    Key = <<"somekey">>,
+    Val = <<"someval">>,
+    {ok, Req2} = cowboy_session:set(Key, Val, Req),
+    {SomeVal, Req3} = cowboy_session:get(Key,Req2),
+    lager:error("~p:~p after XXXXXXXXXXXXXXXXXXXXXXXX ~p", [?MODULE, ?LINE, SomeVal]),
+    lager:info("~p:~p after XXXXXXXXXXXXXXXXXXXXXXXX ~p", [?MODULE, ?LINE, Req2]),
     {ok, Req2}.
 
 redirect_to(Req, Reply, Location) ->
@@ -155,8 +163,8 @@ redirect_to(Req, Reply, Location) ->
 
 %% @Password is the Hash of the right password
 check_password(PasswordAttempt, PasswordHash) ->
-    lager:info("~p:~p check ... PasswordAttempt: ~p", [?MODULE, ?LINE, PasswordAttempt]),
-    lager:info("~p:~p check ... PasswordHash ~p", [?MODULE, ?LINE, PasswordHash]),
+    %% lager:info("~p:~p check ... PasswordAttempt: ~p", [?MODULE, ?LINE, PasswordAttempt]),
+    %% lager:info("~p:~p check ... PasswordHash ~p", [?MODULE, ?LINE, PasswordHash]),
 
     %% StoredPassword = erlang:binary_to_list(PasswordHash),
     StoredPassword = PasswordHash,
