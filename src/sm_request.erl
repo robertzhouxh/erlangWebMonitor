@@ -9,10 +9,15 @@
 -record(state, {options}).
 
 %% cowboy_http_handler Callbacks
-init({_Transport, _Protocol}, Req, Opts) ->
+init({_Transport, _Protocol}, Req, Opts) ->  %% do nothing, make sure that a reply is sent for every request.
+    %% lager:info("Opts in init -----------> ~n~p~n", [Opts]),
+    %% lager:info("Req in init -----------> ~n~p~n", [Req]),
+
     {ok, Req, #state{options=Opts}}.
 
-handle(Req, State=#state{options=Opts}) ->
+handle(Req, State=#state{options=Opts}) ->    
+    %% lager:info("Opts in Handle -----------> ~n~p~n", [Opts]),
+    %% lager:info("Req in handle -----------> ~n~p~n", [Req]),    %% same as init function 
     {module, Module}     = proplists:lookup(module, Opts),
     {function, Function} = proplists:lookup(function, Opts),
     case proplists:lookup(protocol, Opts) of
@@ -33,7 +38,7 @@ handle(Req, State=#state{options=Opts}) ->
                       end,
             {Method, _} = cowboy_req:method(Req),
             Decoded = case Method of
-                          <<"POST">> -> Protocol:decode(Body, Format);
+                          <<"POST">> -> Protocol:decode(Body, Format);  %% binary to tuple
                           <<"PUT">> -> Protocol:decode(Body, Format);
                           _ -> <<>>
                       end,
@@ -50,7 +55,7 @@ handle(Req, State=#state{options=Opts}) ->
 
                         %% return the #sm_response record as well as the Reply body
                         {ok, Reply, Response=#sm_response{}, ReqTail} ->
-                            Encoded = Protocol:encode(Reply, Format),
+                            Encoded = Protocol:encode(Reply, Format),     %% tuple to binary
                             RespHeaders = Response#sm_response.headers,
                             RespHeaders1 = case proplists:lookup(<<"content-type">>, RespHeaders) of
                                                none -> RespHeaders ++ Headers;
@@ -84,7 +89,7 @@ get_body(Req) ->
     get_body(Req, []).
 get_body(Req, Body) ->
     case cowboy_req:body(Req) of
-        {ok, Data, Req1} ->
+        {ok, Data, _Req1} ->
             Body ++ Data;
         {more, Data, Req1} ->
             get_body(Req1, Body ++ Data)
@@ -115,4 +120,5 @@ get_response(#sm_response{status=Status, headers=Headers, body=Body, cookies=Coo
     Req2 = set_cookies(Cookies, Req),
     lager:info("~p:~p ===> Body:~p~n", [?MODULE, ?LINE,  Body]),
     {ok, Req3} = cowboy_req:reply(Status, Headers, Body, Req2),
+    %% lager:error("~p:~p ===> req3:~p~n", [?MODULE, ?LINE,  Req3]),
     Req3.

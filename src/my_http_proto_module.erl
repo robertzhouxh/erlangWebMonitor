@@ -9,6 +9,10 @@
 
 -export([my_http_proto_handler/2]).
 
+%% Information of databases
+-define(DB_INDEX, 2).            %% Index of redis databases
+-define(TABLENAME, pre_ucenter_members).  %% Table that stores the Information of users
+
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]),
     {Action, Req2} = cowboy_req:binding(action, Req),
@@ -19,7 +23,7 @@ my_http_proto_handler(Decoded, Req) ->
                                                       Req3,
                                                       Decoded
                                                      ),
-
+    %% lager:info("Req3 ---------------> ~n~p~n", [Req3]),
     lager:info("~p:~p tobe sent to sm:  ~p", [?MODULE, ?LINE, Reply]),
 
     {ok, Reply, #sm_response{status  = Status, headers = Headers, cookies = Cookies}, ReqTail}.
@@ -32,22 +36,27 @@ enter_handlers(Action, Method, Req, Payload) ->
             login_handler(Req, Payload);
         <<"logout">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            {200, <<"ok">>, [], [], Req};
+            logout_handler(Req);
         <<"users">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            users_handler(Req);
-            %% case check_session(Req) of
-            %%     {undefined, Req2} ->
-            %%         redirect_to(Req2, <<>>, ?LOGIN_URL);
-            %%     {SessionVal, Req2} ->
-            %%         users_handler(Req2)
-            %% end;
+            case check_session(Req) of
+                {undefined, Req2} ->
+                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                {_SessionVal, Req2} ->
+                    users_handler(Req2)
+            end;
         <<"online">> when Method =:= "GET" ->
             lager:info("starting ~p process", [Action]),
-            online_handler(Req);
+            case check_session(Req) of
+                {undefined, Req2} ->
+                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                {_SessionVal, Req2} ->
+                    online_handler(Req2)
+            end;
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
             redirect_to(Req, Payload, ?INDEX_URL)
+
     end.
 
 
@@ -57,12 +66,12 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
     ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}, {domain, <<"localhost">>}]),
     ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expire, 86400}]),
     Src = binary_to_list(Username) ++ ":" ++ binary_to_list(Password),
-    lager:info("~p:~p SRC: ~p", [?MODULE, ?LINE, Src]),
+    %% lager:info("~p:~p SRC: ~p", [?MODULE, ?LINE, Src]),
 
     {ok, Pwdhash} = hash_password("admin:pass"),
-    lager:info("~p:~p Pwdhash: ~p", [?MODULE, ?LINE, Pwdhash]),
+    %% lager:info("~p:~p Pwdhash: ~p", [?MODULE, ?LINE, Pwdhash]),
 
-    case check_password(Src, Pwdhash) of
+    case check_password(Src, Pwdhash) of    %% verify the Password
         true -> case set_session(Req) of
                     {ok, Req3}->
                         {200,
@@ -71,29 +80,25 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
                          [{<<"content-type">>, <<"application/json">>}],
                          Req3}
                 end;
-        false -> {401,
-                  [{<<"msg">>, <<"Login Failed!">>}],
-                  [],
-                  [{<<"content-type">>, <<"application/json">>}],
-                  Req}
+        false -> {401,                                   %% Status
+                  [{<<"msg">>, <<"Login Failed!">>}],    %% Reply
+                  [],                                    %% Cookie 
+                  [{<<"content-type">>, <<"application/json">>}], %% Headers
+                  Req}                                            %% ReqTail
+    end.
+
+logout_handler(Req) ->
+    case cowboy_session:expire(Req) of
+        {ok, Req2} ->
+            {200, [{<<"msg">>, <<"Logout!">>}], [], [], Req2}
     end.
 
 users_handler(Req) ->
     %% fetch the users from the mysql blablabla ...
-    Username = <<"zhouxuehao">>,
-    AuthSql = "select password from mqtt_user where username = '%u' limit 1",
+    UsersInfo = get_userinfo_from_mysql(),
+    Resp = UsersInfo,
 
-    lager:info("authquery: ~p ", [AuthSql]),
-
-    Resp = case emysql:sqlquery(replvar(AuthSql, Username)) of
-              {ok, [Res]} ->
-                  lager:info("~p:~p ~p", [?MODULE, ?LINE, Res]),
-                  Res;
-              {ok, []} ->
-                  []
-          end,
     {200,
-     %% [{<<"msg">>, <<"Login successfully!">>}],
      Resp,
      [],
      [{<<"content-type">>, <<"application/json">>}],
@@ -101,13 +106,15 @@ users_handler(Req) ->
 
 
 online_handler(Req) ->
-    Resp = case eredis_pool:q({global, pool1}, ["GET", <<"foo">>]) of
+    Resp = case get_session_from_redis() of
                {ok, [Record]} ->
                    lager:info("get from the redis server with record:  ~p~n", [Record]),
                    Record;
                {ok, Tuple} ->
                    lager:info("get from the redis server with record:  ~p~n", [Tuple]),
-                   Tuple
+                   Tuple;
+               _ ->
+                   lager:info("-------can not find [key] in redis ----------------")
            end,
     {200,
      Resp,
@@ -115,31 +122,27 @@ online_handler(Req) ->
      [{<<"content-type">>, <<"application/json">>}],
      Req}.
 
-
 %% ------------------------------------------------------------------------------------------------------
 check_session(Req) ->
-    {SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req),
-    {SessionVal, Req3} = cowboy_session:get(SessionId, Req2),
-    lager:info("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, SessionId, SessionVal]),
-    {SessionVal, Req3}.
+    %% lager:error("Req  in check_session ---> ~n~p~n", [Req]),
+    {SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req), %% read the value of cookie
+    %% lager:error("SessionId--------------> ~n~p~n", [SessionId]),
+    {SomeVal, Req3} = cowboy_session:get(<<"somekey">>, Req2),
+    lager:error("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, <<"somekey">>, SomeVal]),
+    {SomeVal, Req3}.
 
+%% generate a cookies in the Req
 set_session(Req) ->
-    SessionId = uuid:v4(),
-    lager:info("~p:~p get the SessionId:~p", [?MODULE, ?LINE, SessionId]),
-    {ok, Req2} = cowboy_session:set(SessionId, "xxxxxxxxxxx", Req),
-    lager:error("~p:~p afterXXXXXXXXXXXXXXXXXXXXXXXX ~p", [?MODULE, ?LINE, Req2]),
+    Key = <<"somekey">>,
+    Val = <<"someval">>,
+    {ok, Req2} = cowboy_session:set(Key, Val, Req),
     {ok, Req2}.
 
-%% {ok, Req2} = cowboy_req:reply(302, [{<<"Location">>, Location}], Req),
 redirect_to(Req, Reply, Location) ->
     {302, Reply, [], [{<<"Location">>, Location}], Req}.
 
 %% @Password is the Hash of the right password
 check_password(PasswordAttempt, PasswordHash) ->
-    lager:info("~p:~p check ... PasswordAttempt: ~p", [?MODULE, ?LINE, PasswordAttempt]),
-    lager:info("~p:~p check ... PasswordHash ~p", [?MODULE, ?LINE, PasswordHash]),
-
-    %% StoredPassword = erlang:binary_to_list(PasswordHash),
     StoredPassword = PasswordHash,
     lager:info("~p:~p check ... StoredPassword ~p", [?MODULE, ?LINE, StoredPassword]),
     compare_password(PasswordAttempt, StoredPassword).
@@ -155,3 +158,16 @@ hash_password(Password)->
 
 replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
+
+get_session_from_redis() ->
+    eredis_pool:q({global, pool1}, ["select",?DB_INDEX]),
+    {ok, SessionIdKeys} = eredis_pool:q({global, pool1},["keys", "*"]),
+    Sessions = lists:map(fun(SessionIdKey) ->
+                                 {ok, Sessioni} = eredis_pool:q({global, pool1}, ["HGETALL", SessionIdKey]),
+                                 Sessioni end,
+                         SessionIdKeys),
+    {ok, Sessions}.
+
+get_userinfo_from_mysql() ->
+    {ok, UsersInfo} = emysql:select({?TABLENAME, [regdate, email, username]}),
+    UsersInfo.
