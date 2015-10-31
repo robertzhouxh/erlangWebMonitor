@@ -94,11 +94,70 @@ cat rel/files/sys.config
 
 1) in ./deps/emysql/src/emysql.app.src :
 
-modify the host and the information of database and table in MySQL
+modify the host and the information of database and table in MySQL, like this:
+
+`````````````````````````````````````````
+{application, emysql,
+ [
+  {description, "Erlang MySQL Client"},
+  {vsn, "4.0"},
+  {modules, []},
+  {registered, []},
+  {applications, [kernel, stdlib, sasl, crypto]},
+  {env, [
+        {pool, 4},
+        {host, "IP"},
+        {port, 3306},
+        {username, "xxxxxxx"},   %% username in MySQL
+        {password, "xxxxxxx"},   %% Password
+        {database, "xxxxxxx"},   %% name of database
+        {encoding, utf8}
+        ]
+   },
+  {mod, {emysql_app, []}}
+]}.
+
+`````````````````````````````````````````
 
 2) in ./deps/eredis_pool/src/eredis_pool.app.src :
 
-add your own pool and relative message, especially in file eredis_pool.app.arc, you maybe change tuple {global_or_local, local/global}, i.e. "local" means to work for localhost, "global" means to work for all host.
+add your own pool and relative message, especially in file eredis_pool.app.arc, you maybe change tuple {global_or_local, local/global}, i.e. "local" means to work for localhost, "global" means to work for all host. like this:
+
+`````````````````````````````````````````
+{application, eredis_pool,
+ [
+  {description, ""},
+  {vsn, "1.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { eredis_pool_app, []}},
+  {env, [
+         {global_or_local, global},
+         {pools, [
+                  {default, [
+                             {size, 10},
+                             {max_overflow, 20}
+                            ], [
+                              {host, "IP"},   %% input ip
+                              {port, 6379}
+                             ]},
+                  {pool1, [
+                           {size, 30},
+                           {max_overflow, 20}
+                          ], [
+                              {host, "IP"},   %% input ip
+                              {port, 6379}
+                             ]}
+                  
+                 ]}
+        ]}
+]}.
+
+
+`````````````````````````````````````````
 
 you can edit the **manager block** to change the cowboy listenner port and any other options.
 and then execute in the console:
