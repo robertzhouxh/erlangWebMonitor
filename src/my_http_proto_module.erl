@@ -63,8 +63,8 @@ enter_handlers(Action, Method, Req, Payload) ->
 %% Erlang term() will be encoded into Json Object:
 %% jsx:encode([{<<"library">>,<<"derp">>},{<<"awesome">>,<<"nerp">>},{<<"IsAwesome">>,<<"ME">>}]);
 login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
-    ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}, {domain, <<"localhost">>}]),
-    ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expire, 86400}]),
+    ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}]),
+    ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expires, 86400}]),
     Src = binary_to_list(Username) ++ ":" ++ binary_to_list(Password),
     %% lager:info("~p:~p SRC: ~p", [?MODULE, ?LINE, Src]),
 
@@ -124,11 +124,9 @@ online_handler(Req) ->
 
 %% ------------------------------------------------------------------------------------------------------
 check_session(Req) ->
-    %% lager:error("Req  in check_session ---> ~n~p~n", [Req]),
     {SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req), %% read the value of cookie
-    %% lager:error("SessionId--------------> ~n~p~n", [SessionId]),
     {SomeVal, Req3} = cowboy_session:get(<<"somekey">>, Req2),
-    lager:error("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, <<"somekey">>, SomeVal]),
+    %% lager:error("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, <<"somekey">>, SomeVal]),
     {SomeVal, Req3}.
 
 %% generate a cookies in the Req
