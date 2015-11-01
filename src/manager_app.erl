@@ -42,6 +42,8 @@
 %% Debug
 -export([stacktrace/0]).
 
+-define(Filename, "auth.dat").
+
 -type unixtime() :: integer().
 -type route() ::
         {file, Path :: string()} |
@@ -90,7 +92,11 @@ stop(_State) ->
 %% set username and Password   username:password
 set_auth(Password)->
     {ok, PassHash} = get_hash_password(Password),
-    application:set_env(manager, auth, PassHash).
+    %% application:set_env(manager, auth, PassHash).
+    {ok, S} = file:open("auth.dat", write),
+    io:format(S, "~s", [PassHash]),
+    file:close(S),
+    lager:info("PassHash ------------: ~n~p~n", [PassHash]).
 
 %% Router match
 -spec route({Pattern :: string(), Route :: route()}) -> tuple(). %% cowboy_router:route_rule()
