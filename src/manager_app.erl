@@ -37,6 +37,8 @@
 -export([now/0]).
 -export([parse_http_date/1]).
 
+-export([set_auth/1]).
+
 %% Debug
 -export([stacktrace/0]).
 
@@ -72,7 +74,6 @@ start(_Type, _Args) ->
 
     %% ProtoOpts2 ===> [{env, [{dispatch, routes(Routes)}]}, {compress, true}]
     ProtoOpts2    = prop_replace(env, ProtoOpts, ProtoEnvOpts),
-    
     %% io:format("~p:~p starting erlangWebmonitor server on prort <  ~p  > ~n", [?MODULE, ?LINE, 8080]),
     lager:info("erlangWebmonitor starting ... on ===> ~n~p~n", [TransOpts]),
     lager:info("ProtoOpts2-------------: ~n~p~n", [ProtoOpts2]),
@@ -85,6 +86,11 @@ start(_Type, _Args) ->
 
 stop(_State) ->
     ok.
+
+%% set username and Password   username:password
+set_auth(Password)->
+    {ok, PassHash} = get_hash_password(Password),
+    application:set_env(manager, auth, PassHash).
 
 %% Router match
 -spec route({Pattern :: string(), Route :: route()}) -> tuple(). %% cowboy_router:route_rule()
@@ -187,3 +193,8 @@ hex_to_bin([X,Y|T], Acc) ->
 stacktrace() ->
     Trace = try throw(sm_stacktrace) catch sm_stacktrace -> erlang:get_stacktrace() end,
     erlang:display(Trace).
+
+%% On success, returns {ok, Hash}.
+get_hash_password(Password)->
+    {ok, Salt} = bcrypt:gen_salt(),
+    bcrypt:hashpw(Password, Salt).

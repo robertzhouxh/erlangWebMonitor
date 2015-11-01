@@ -14,9 +14,12 @@
 -define(TABLENAME, pre_ucenter_members).  %% Table that stores the Information of users
 
 my_http_proto_handler(Decoded, Req) ->
-    lager:info("~p:~p my_http_proto_handler:  ~p", [?MODULE, ?LINE, Decoded]),
+    lager:info("~p:~p my_http_proto_handler Decoded:  ~p", [?MODULE, ?LINE, Decoded]),
     {Action, Req2} = cowboy_req:binding(action, Req),
     {Method, Req3} = cowboy_req:method(Req2),
+    %% lager:info("~p:~p Req2 ==============>  ~p", [?MODULE, ?LINE, Req2]),
+    %% lager:info("~p:~p Req3 ==============>  ~p", [?MODULE, ?LINE, Req3]),
+
 
     {Status, Reply, Cookies, Headers, ReqTail} = enter_handlers(Action,
                                                       binary_to_list(Method),
@@ -66,14 +69,15 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
     ok = cowboy_session_config:set(cookie_options, [{path, <<"/">>}]),
     ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expires, 86400}]),
     Src = binary_to_list(Username) ++ ":" ++ binary_to_list(Password),
-    %% lager:info("~p:~p SRC: ~p", [?MODULE, ?LINE, Src]),
-
-    {ok, Pwdhash} = hash_password("admin:pass"),
-    %% lager:info("~p:~p Pwdhash: ~p", [?MODULE, ?LINE, Pwdhash]),
+    lager:info("~p:~p SRC: ~p", [?MODULE, ?LINE, Src]),
+    {ok, Pwdhash} =  application:get_env(manager,auth),
+    %% {ok, Pwdhash} = hash_password("admin:pass"),
+    lager:info("~p:~p Pwdhash: ~p", [?MODULE, ?LINE, Pwdhash]),
 
     case check_password(Src, Pwdhash) of    %% verify the Password
         true -> case set_session(Req) of
                     {ok, Req3}->
+                        %% lager:info("~p:~p Req3 ==============>  ~p", [?MODULE, ?LINE, Req3]),
                         {200,
                          [{<<"msg">>, <<"Login successfully!">>}],
                          [],
