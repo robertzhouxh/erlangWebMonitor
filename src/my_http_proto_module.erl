@@ -70,9 +70,8 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
     ok = cowboy_session_config:set([{cookie_name, <<"sessionid">>}, {expires, 86400}]),
     Src = binary_to_list(Username) ++ ":" ++ binary_to_list(Password),
     lager:info("~p:~p SRC: ~p", [?MODULE, ?LINE, Src]),
-    %% {ok, Pwdhash} =  application:get_env(manager,auth),
     %% {ok, Pwdhash} = hash_password("admin:pass"),
-    {ok, S} = file:open("auth.dat", read),
+    {ok, S} = file:open("../files/auth.dat", read),
     Pwdhash = io:get_line(S, ''),
     lager:info("~p:~p Pwdhash: ~p", [?MODULE, ?LINE, Pwdhash]),
 

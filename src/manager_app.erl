@@ -78,7 +78,7 @@ start(_Type, _Args) ->
     ProtoOpts2    = prop_replace(env, ProtoOpts, ProtoEnvOpts),
     %% io:format("~p:~p starting erlangWebmonitor server on prort <  ~p  > ~n", [?MODULE, ?LINE, 8080]),
     lager:info("erlangWebmonitor starting ... on ===> ~n~p~n", [TransOpts]),
-    lager:info("ProtoOpts2-------------: ~n~p~n", [ProtoOpts2]),
+    %% lager:info("ProtoOpts2-------------: ~n~p~n", [ProtoOpts2]),
     %% cowboy:start_https(https, NbAcceptors, TransOpts, ProtoOpts2),
     cowboy:start_http(http, NbAcceptors, TransOpts, ProtoOpts2),
 
@@ -92,8 +92,8 @@ stop(_State) ->
 %% set username and Password   username:password
 set_auth(Password)->
     {ok, PassHash} = get_hash_password(Password),
-    %% application:set_env(manager, auth, PassHash).
-    {ok, S} = file:open("auth.dat", write),
+    
+    {ok, S} = file:open("../files/auth.dat", write),
     io:format(S, "~s", [PassHash]),
     file:close(S),
     lager:info("PassHash ------------: ~n~p~n", [PassHash]).
