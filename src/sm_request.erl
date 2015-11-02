@@ -10,14 +10,13 @@
 
 %% cowboy_http_handler Callbacks
 init({_Transport, _Protocol}, Req, Opts) ->  %% do nothing, make sure that a reply is sent for every request.
-    %% lager:info("Opts in init -----------> ~n~p~n", [Opts]),
-    %% lager:info("Req in init -----------> ~n~p~n", [Req]),
-
+    %% lager:info("Opts in  ~p ~p ---------> ~n~p~n", [?MODULE, ?LINE, Opts]),
+    %% lager:info("Req in  ~p ~p ---------> ~n~p~n", [?MODULE, ?LINE, Req]),
     {ok, Req, #state{options=Opts}}.
 
-handle(Req, State=#state{options=Opts}) ->    
-    %% lager:info("Opts in Handle -----------> ~n~p~n", [Opts]),
-    %% lager:info("Req in handle -----------> ~n~p~n", [Req]),    %% same as init function 
+handle(Req, State=#state{options=Opts}) ->
+    %% lager:info("Opts in  ~p ~p ---------> ~n~p~n", [?MODULE, ?LINE, Opts]),
+    %% lager:info("Req in  ~p ~p ---------> ~n~p~n", [?MODULE, ?LINE, Req]),
     {module, Module}     = proplists:lookup(module, Opts),
     {function, Function} = proplists:lookup(function, Opts),
     case proplists:lookup(protocol, Opts) of
@@ -42,7 +41,7 @@ handle(Req, State=#state{options=Opts}) ->
                           <<"PUT">> -> Protocol:decode(Body, Format);
                           _ -> <<>>
                       end,
-            lager:info("~p:~p ===> ~nformat:~p~n headers:~p~n Decoded:~p~n", [?MODULE, ?LINE, Format, Headers, Decoded]),
+            lager:info("~p:~p ===>~nBody:~p~nFrmat:~p~nHeaders:~p~nDecoded:~p~n", [?MODULE, ?LINE, Body, Format, Headers, Decoded]),
 
             case Protocol:supports_format(Format) of
                 true ->
