@@ -17,9 +17,6 @@ my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler Decoded:  ~p", [?MODULE, ?LINE, Decoded]),
     {Action, Req2} = cowboy_req:binding(action, Req),
     {Method, Req3} = cowboy_req:method(Req2),
-    %% lager:info("~p:~p Req2 ==============>  ~p", [?MODULE, ?LINE, Req2]),
-    %% lager:info("~p:~p Req3 ==============>  ~p", [?MODULE, ?LINE, Req3]),
-
 
     {Status, Reply, Cookies, Headers, ReqTail} = enter_handlers(Action,
                                                       binary_to_list(Method),
@@ -55,6 +52,14 @@ enter_handlers(Action, Method, Req, Payload) ->
                     redirect_to(Req2, <<>>, ?LOGIN_URL);
                 {_SessionVal, Req2} ->
                     online_handler(Req2)
+            end;
+        <<"devices">> when Method =:= "GET" ->
+            lager:info("starting ~p process", [Action]),
+            case check_session(Req) of
+                {undefined, Req2} ->
+                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                {_SessionVal, Req2} ->
+                    devices_handler(Req2)
             end;
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
@@ -109,7 +114,6 @@ users_handler(Req) ->
      [{<<"content-type">>, <<"application/json">>}],
      Req}.
 
-
 online_handler(Req) ->
     Resp = case get_session_from_redis() of
                {ok, [Record]} ->
@@ -121,6 +125,15 @@ online_handler(Req) ->
                _ ->
                    lager:info("-------can not find [key] in redis ----------------")
            end,
+    {200,
+     Resp,
+     [],
+     [{<<"content-type">>, <<"application/json">>}],
+     Req}.
+
+devices_handler(Req) ->
+    DevicesInfo = get_devices_from_mongo(),
+    Resp = DevicesInfo,
     {200,
      Resp,
      [],
@@ -162,6 +175,7 @@ hash_password(Password)->
 replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
+
 get_session_from_redis() ->
     eredis_pool:q({global, pool1}, ["select",?RDDB_INDEX]),
     {ok, SessionIdKeys} = eredis_pool:q({global, pool1},["keys", "*"]),
@@ -171,6 +185,12 @@ get_session_from_redis() ->
                          SessionIdKeys),
     {ok, Sessions}.
 
+
 get_userinfo_from_mysql() ->
     {ok, UsersInfo} = emysql:select({?MSQL_USER_TAB, [regdate, email, username]}),
     UsersInfo.
+
+
+get_devices_from_mongo() ->
+    Devices = [{nothing, sorry}],
+    Devices.

@@ -14,7 +14,8 @@
                   bcrypt,
                   jsx,
                   emysql,
-                  eredis_pool
+                  eredis_pool,
+                  mongodb
                  ]},
  {mod, {manager_app, []}},
  {env, []}
