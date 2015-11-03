@@ -10,8 +10,8 @@
 -export([my_http_proto_handler/2]).
 
 %% Information of databases
--define(DB_INDEX, 2).            %% Index of redis databases
--define(TABLENAME, pre_ucenter_members).  %% Table that stores the Information of users
+-define(RDDB_INDEX, 2).            %% Index of redis databases
+-define(MSQL_USER_TAB, pre_ucenter_members).  %% Table that stores the Information of users
 
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler Decoded:  ~p", [?MODULE, ?LINE, Decoded]),
@@ -163,7 +163,7 @@ replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
 get_session_from_redis() ->
-    eredis_pool:q({global, pool1}, ["select",?DB_INDEX]),
+    eredis_pool:q({global, pool1}, ["select",?RDDB_INDEX]),
     {ok, SessionIdKeys} = eredis_pool:q({global, pool1},["keys", "*"]),
     Sessions = lists:map(fun(SessionIdKey) ->
                                  {ok, Sessioni} = eredis_pool:q({global, pool1}, ["HGETALL", SessionIdKey]),
@@ -172,5 +172,5 @@ get_session_from_redis() ->
     {ok, Sessions}.
 
 get_userinfo_from_mysql() ->
-    {ok, UsersInfo} = emysql:select({?TABLENAME, [regdate, email, username]}),
+    {ok, UsersInfo} = emysql:select({?MSQL_USER_TAB, [regdate, email, username]}),
     UsersInfo.
