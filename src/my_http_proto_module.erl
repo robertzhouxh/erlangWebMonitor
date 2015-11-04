@@ -197,7 +197,7 @@ get_devices_from_mongo() ->
     {ok, Connection} = mongo:connect ([{database, Database}]),
     Collection = <<"device">>,
     NumOfTatalDev = mongo:count(Connection, Collection, {}),
-    SelectorPublic = {<<isPublic>>, true},
+    SelectorPublic = {<<"isPublic">>, true},
     NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
     DayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
     DayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(DayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
