@@ -195,7 +195,8 @@ get_userinfo_from_mysql() ->
 
 get_devices_from_mongo() ->
     Database =  <<"production">>,
-    {ok, Connection} = mongo:connect ([{database, Database}]),
+    %% {ok, Connection} = mongo:connect ([{database, Database}]),
+    {ok, Connection} = mongo:connect ([{database, Database}, {host, "192.168.0.106"}, {port, 27017}]),
     Collection = <<"device">>,
 
     TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
