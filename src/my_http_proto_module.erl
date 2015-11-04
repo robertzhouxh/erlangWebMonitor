@@ -201,10 +201,11 @@ get_devices_from_mongo() ->
     DayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(DayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
     lager:info("DayBeginTimeStamp ============> ~p~n", [DayBeginTimeStamp]),
 
+    %% Selector based on https://github.com/comtihon/mongodb-erlang/issues/52
     SelectorAllDevs = {},
     SelectorPublic = {<<"isPublic">>, true},
-    SelectorDayReg = {'$gte', {<<"created_at">>, DayBeginTimeStamp}},
-    SelectorNewAndPublic = {'$gte', {<<"created_at">>, DayBeginTimeStamp}, '$gte', {<<"isPublic">>, true}},
+    SelectorDayReg = {<<"created_at">>, {'$gte', DayBeginTimeStamp}},
+    SelectorNewAndPublic = {'$and', [{<<"created_at">>, {'$gte', DayBeginTimeStamp}},{<<"isPublic">>, true}]},
 
     NumOfTatalDev = mongo:count(Connection, Collection, SelectorAllDevs),
     NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
