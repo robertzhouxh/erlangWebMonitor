@@ -196,13 +196,23 @@ get_devices_from_mongo() ->
     Database =  <<"production">>,
     {ok, Connection} = mongo:connect ([{database, Database}]),
     Collection = <<"device">>,
-    NumOfTatalDev = mongo:count(Connection, Collection, {}),
-    SelectorPublic = {<<"isPublic">>, true},
-    NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
+
     DayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
     DayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(DayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
     lager:info("DayBeginTimeStamp ============> ~p~n", [DayBeginTimeStamp]),
-    SelectorDayReg = {'$gte', {<<"Created_at">>, DayBeginTimeStamp}},
+
+    SelectorAllDevs = {},
+    SelectorPublic = {<<"isPublic">>, true},
+    SelectorDayReg = {'$gte', {<<"created_at">>, DayBeginTimeStamp}},
+    SelectorNewAndPublic = {'$gte', {<<"created_at">>, DayBeginTimeStamp}, '$gte', {<<"isPublic">>, true}},
+
+    NumOfTatalDev = mongo:count(Connection, Collection, SelectorAllDevs),
+    NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
     NumNewRegDev = mongo:count(Connection, Collection, SelectorDayReg),
-    Devices =[{total_devs, NumOfTatalDev}, {public_devs, NumOfPubDev}, {today_new_devs, NumNewRegDev}],
+    NumNewAndPub = mongo:count(Connection, Collection, SelectorNewAndPublic),
+
+    Devices =[{total_devs, NumOfTatalDev},
+              {public_devs, NumOfPubDev}, 
+              {today_new_devs, NumNewRegDev},
+              {today_new_pub_devs, NumNewAndPub}],
     Devices.
