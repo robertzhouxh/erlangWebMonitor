@@ -13,7 +13,6 @@
 -define(RDDB_INDEX, 2).            %% Index of redis databases
 -define(MSQL_USER_TAB, pre_ucenter_members).  %% Table that stores the Information of users
 -define(DAYTS, 86400).
--define(SEARCH_DAYS, 10).                       % how many days you want to search 
 
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler Decoded:  ~p", [?MODULE, ?LINE, Decoded]),
@@ -195,20 +194,29 @@ get_userinfo_from_mysql() ->
 
 
 get_devices_from_mongo() ->
-    Database =  <<"production">>,
-    %% {ok, Connection} = mongo:connect ([{database, Database}]),
-    {ok, Connection} = mongo:connect ([{database, Database}, {host, "192.168.0.106"}, {port, 27017}]),
-    Collection = <<"device">>,
+    Pars = application:get_all_env(mongodb),
+    Database = lists:keyfind(database, 1, Pars),
+    lager:info("Database ============> ~p~n", [Database]),
+    {collection, Collection} = lists:keyfind(collection, 1, Pars),
+    lager:info("Collection ============> ~p~n", [Collection]),
+
+    Host = lists:keyfind(host, 1, Pars),
+    lager:info("Host ============> ~p~n", [Host]),
+
+    Port = lists:keyfind(port, 1, Pars),
+    lager:info("Port ============> ~p~n", [Port]),
+    {search_days, SEARCH_DAYS} = lists:keyfind(search_days, 1, Pars),
+
+    {ok, Connection} = mongo:connect ([Database, Host, Port]),
 
     TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
     TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
     lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
-    Days =lists:reverse(lists:seq(0, ?SEARCH_DAYS)),
-    DurationBeginTS = lists:map(fun(D) ->
-                                        TodayBeginTimeStamp - D * ?DAYTS end, 
+    Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
+    DurationBeginTS = lists:map(fun(Day) ->
+                                        TodayBeginTimeStamp - Day * ?DAYTS end, 
                                 Days),
 
-    %% Selector based on https://github.com/comtihon/mongodb-erlang/issues/52
     SelectorAllDevs = {},
     SelectorPublic = {<<"isPublic">>, true},
     SelectorDayReg = lists:map(fun(Dts) ->
