@@ -10,16 +10,15 @@
 -export([my_http_proto_handler/2]).
 
 %% Information of databases
--define(DB_INDEX, 2).            %% Index of redis databases
--define(TABLENAME, pre_ucenter_members).  %% Table that stores the Information of users
+-define(RDDB_INDEX, 2).            %% Index of redis databases
+-define(MSQL_USER_TAB, pre_ucenter_members).  %% Table that stores the Information of users
+-define(DAYTS, 86400).
+-define(SEARCH_DAYS, 10).                       % how many days you want to search 
 
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler Decoded:  ~p", [?MODULE, ?LINE, Decoded]),
     {Action, Req2} = cowboy_req:binding(action, Req),
     {Method, Req3} = cowboy_req:method(Req2),
-    %% lager:info("~p:~p Req2 ==============>  ~p", [?MODULE, ?LINE, Req2]),
-    %% lager:info("~p:~p Req3 ==============>  ~p", [?MODULE, ?LINE, Req3]),
-
 
     {Status, Reply, Cookies, Headers, ReqTail} = enter_handlers(Action,
                                                       binary_to_list(Method),
@@ -55,6 +54,14 @@ enter_handlers(Action, Method, Req, Payload) ->
                     redirect_to(Req2, <<>>, ?LOGIN_URL);
                 {_SessionVal, Req2} ->
                     online_handler(Req2)
+            end;
+        <<"devices">> when Method =:= "GET" ->
+            lager:info("starting ~p process", [Action]),
+            case check_session(Req) of
+                {undefined, Req2} ->
+                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                {_SessionVal, Req2} ->
+                    devices_handler(Req2)
             end;
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
@@ -109,7 +116,6 @@ users_handler(Req) ->
      [{<<"content-type">>, <<"application/json">>}],
      Req}.
 
-
 online_handler(Req) ->
     Resp = case get_session_from_redis() of
                {ok, [Record]} ->
@@ -121,6 +127,16 @@ online_handler(Req) ->
                _ ->
                    lager:info("-------can not find [key] in redis ----------------")
            end,
+    {200,
+     Resp,
+     [],
+     [{<<"content-type">>, <<"application/json">>}],
+     Req}.
+
+devices_handler(Req) ->
+    DevicesInfo = get_devices_from_mongo(),
+    Resp = DevicesInfo,
+    lager:info("Devices msg ==========> ~n~p", [Resp]),
     {200,
      Resp,
      [],
@@ -162,8 +178,9 @@ hash_password(Password)->
 replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
+
 get_session_from_redis() ->
-    eredis_pool:q({global, pool1}, ["select",?DB_INDEX]),
+    eredis_pool:q({global, pool1}, ["select",?RDDB_INDEX]),
     {ok, SessionIdKeys} = eredis_pool:q({global, pool1},["keys", "*"]),
     Sessions = lists:map(fun(SessionIdKey) ->
                                  {ok, Sessioni} = eredis_pool:q({global, pool1}, ["HGETALL", SessionIdKey]),
@@ -171,6 +188,48 @@ get_session_from_redis() ->
                          SessionIdKeys),
     {ok, Sessions}.
 
+
 get_userinfo_from_mysql() ->
-    {ok, UsersInfo} = emysql:select({?TABLENAME, [regdate, email, username]}),
+    {ok, UsersInfo} = emysql:select({?MSQL_USER_TAB, [regdate, email, username]}),
     UsersInfo.
+
+
+get_devices_from_mongo() ->
+    Database =  <<"production">>,
+    %% {ok, Connection} = mongo:connect ([{database, Database}]),
+    {ok, Connection} = mongo:connect ([{database, Database}, {host, "192.168.0.106"}, {port, 27017}]),
+    Collection = <<"device">>,
+
+    TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
+    TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
+    lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
+    Days =lists:reverse(lists:seq(0, ?SEARCH_DAYS)),
+    DurationBeginTS = lists:map(fun(D) ->
+                                        TodayBeginTimeStamp - D * ?DAYTS end, 
+                                Days),
+
+    %% Selector based on https://github.com/comtihon/mongodb-erlang/issues/52
+    SelectorAllDevs = {},
+    SelectorPublic = {<<"isPublic">>, true},
+    SelectorDayReg = lists:map(fun(Dts) ->
+                                       {'$and', [{<<"created_at">>, {'$gte', Dts}},{<<"created_at">>, {'$lt', Dts+?DAYTS}}]} end,
+                               DurationBeginTS),
+    SelectorNewAndPublic = lists:map(fun(Dts) ->
+                                             {'$and', [{<<"created_at">>, {'$gte', Dts}}, {<<"created_at">>, {'$lt', Dts+?DAYTS}}, {<<"isPublic">>, true}]} end,
+                                     DurationBeginTS),
+    %% search relative numbers of devices 
+    NumOfTatalDev = mongo:count(Connection, Collection, SelectorAllDevs),
+    NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
+
+    NumNewRegDev = lists:map(fun(Sel) ->
+                                       mongo:count(Connection, Collection, Sel) end,
+                             SelectorDayReg),
+    NumNewAndPub = lists:map(fun(Sel) ->
+                                       mongo:count(Connection, Collection, Sel) end,
+                             SelectorNewAndPublic),
+ 
+    Devices =[{total_devs, NumOfTatalDev},
+              {public_devs, NumOfPubDev}, 
+              {duration_new_devs, NumNewRegDev},
+              {duration_new_pub_devs, NumNewAndPub}],
+    Devices.

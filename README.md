@@ -166,7 +166,29 @@ and then execute in the console:
 $ make clean && make relclean && make rel
 $ ./rel/manager/bin/manager console
 ```
+API
+------------
+/v2/login   POST
 
+login, and you should set your usename and Password when you login first time. when you enter the console, you should run
+```````````````````````````````````````````````````
+> manager_app:set_auth(yourusername:yourpassword)
+```````````````````````````````````````````````````
+*/v2/logout  GET*
+
+logout 
+
+*/v2/users   GET*
+
+get information of users 
+
+*/v2/online  GET*
+
+get information of online users
+
+*/v2/devices GET*
+
+get information of devices (including total devices, total public devices, new devices and new public devices in some duration). 
 
 Enjoy!
 
