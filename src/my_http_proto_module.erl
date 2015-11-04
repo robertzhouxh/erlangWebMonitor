@@ -13,6 +13,7 @@
 -define(RDDB_INDEX, 2).            %% Index of redis databases
 -define(MSQL_USER_TAB, pre_ucenter_members).  %% Table that stores the Information of users
 -define(DAYTS, 86400).
+-define(SEARCH_DAYS, 10).                       % how many days you want to search 
 
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler Decoded:  ~p", [?MODULE, ?LINE, Decoded]),
@@ -202,16 +203,19 @@ get_devices_from_mongo() ->
     TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
     TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
     lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
-    DurationBeginTS = [TodayBeginTimeStamp - 2*?DAYTS ,TodayBeginTimeStamp-?DAYTS, TodayBeginTimeStamp],
+    Days =lists:reverse(lists:seq(0, ?SEARCH_DAYS)),
+    DurationBeginTS = lists:map(fun(D) ->
+                                        TodayBeginTimeStamp - D * ?DAYTS end, 
+                                Days),
 
     %% Selector based on https://github.com/comtihon/mongodb-erlang/issues/52
     SelectorAllDevs = {},
     SelectorPublic = {<<"isPublic">>, true},
     SelectorDayReg = lists:map(fun(Dts) ->
-                                       {'$and', [{<<"created_at">>, {'$gte', Dts}},{<<"created_at">>, {'$lt', Dts+?DAYTS}},{<<"isPublic">>, true}]} end,
+                                       {'$and', [{<<"created_at">>, {'$gte', Dts}},{<<"created_at">>, {'$lt', Dts+?DAYTS}}]} end,
                                DurationBeginTS),
     SelectorNewAndPublic = lists:map(fun(Dts) ->
-                                             {'$and', [{<<"created_at">>, {'$gte', Dts+?DAYTS}}, {<<"created_at">>, {'$lt', Dts+?DAYTS}},{<<"isPublic">>, true}]} end,
+                                             {'$and', [{<<"created_at">>, {'$gte', Dts}}, {<<"created_at">>, {'$lt', Dts+?DAYTS}}, {<<"isPublic">>, true}]} end,
                                      DurationBeginTS),
     %% search relative numbers of devices 
     NumOfTatalDev = mongo:count(Connection, Collection, SelectorAllDevs),
