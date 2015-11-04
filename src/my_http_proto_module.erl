@@ -12,6 +12,7 @@
 %% Information of databases
 -define(RDDB_INDEX, 2).            %% Index of redis databases
 -define(MSQL_USER_TAB, pre_ucenter_members).  %% Table that stores the Information of users
+-define(DAYTS, 86400).
 
 my_http_proto_handler(Decoded, Req) ->
     lager:info("~p:~p my_http_proto_handler Decoded:  ~p", [?MODULE, ?LINE, Decoded]),
@@ -197,23 +198,33 @@ get_devices_from_mongo() ->
     {ok, Connection} = mongo:connect ([{database, Database}]),
     Collection = <<"device">>,
 
-    DayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
-    DayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(DayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
-    lager:info("DayBeginTimeStamp ============> ~p~n", [DayBeginTimeStamp]),
-
+    TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
+    TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
+    lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
+    DurationBeginTS = [TodayBeginTimeStamp - 2 * ?DAYTS ,TodayBeginTimeStamp-?DAYTS, TodayBeginTimeStamp],
     %% Selector based on https://github.com/comtihon/mongodb-erlang/issues/52
     SelectorAllDevs = {},
     SelectorPublic = {<<"isPublic">>, true},
-    SelectorDayReg = {<<"created_at">>, {'$gte', DayBeginTimeStamp}},
-    SelectorNewAndPublic = {'$and', [{<<"created_at">>, {'$gte', DayBeginTimeStamp}},{<<"isPublic">>, true}]},
-
+    SelectorDayReg = lists:map(fun(Dts) ->
+                                       {'$and', [{<<"created_at">>, {'$gte', Dts}},{<<"created_at">>, {'$lt', Dts+?DAYTS}},{<<"isPublic">>, true}]} end,
+                               DurationBeginTS),
+    SelectorNewAndPublic = lists:map(fun(Dts) ->
+                                             {'$and', [{<<"created_at">>, {'$gte', Dts+?DAYTS}}, {<<"created_at">>, {'$lt', Dts+?DAYTS}},{<<"isPublic">>, true}]} end,
+                                     DurationBeginTS),
     NumOfTatalDev = mongo:count(Connection, Collection, SelectorAllDevs),
     NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
-    NumNewRegDev = mongo:count(Connection, Collection, SelectorDayReg),
-    NumNewAndPub = mongo:count(Connection, Collection, SelectorNewAndPublic),
+    %% NumNewRegDev = mongo:count(Connection, Collection, SelectorDayReg),
+    %% NumNewAndPub = mongo:count(Connection, Collection, SelectorNewAndPublic),
 
+    NumNewRegDev = lists:map(fun(Sel) ->
+                                       mongo:count(Connection, Collection, Sel) end,
+                             SelectorDayReg),
+    NumNewAndPub = lists:map(fun(Sel) ->
+                                       mongo:count(Connection, Collection, Sel) end,
+                             SelectorNewAndPublic),
+ 
     Devices =[{total_devs, NumOfTatalDev},
               {public_devs, NumOfPubDev}, 
-              {today_new_devs, NumNewRegDev},
-              {today_new_pub_devs, NumNewAndPub}],
+              {duration_new_devs, NumNewRegDev},
+              {duration_new_pub_devs, NumNewAndPub}],
     Devices.
