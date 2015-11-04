@@ -134,6 +134,7 @@ online_handler(Req) ->
 devices_handler(Req) ->
     DevicesInfo = get_devices_from_mongo(),
     Resp = DevicesInfo,
+    lager:info("Devices msg ==========> ~n~p", [Resp]),
     {200,
      Resp,
      [],
@@ -192,5 +193,10 @@ get_userinfo_from_mysql() ->
 
 
 get_devices_from_mongo() ->
-    Devices = [{nothing, sorry}],
+    Database =  <<"production">>,
+    {ok, Connection} = mongo:connect ([{database, Database}]),
+    Collection = <<"device">>,
+    NumOfTatalDev = mongo:count(Connection, Collection, {}),
+    NumOfPubDev = mongo:count(Connection, Collection, {<<"isPublic">>, true}),
+    Devices =[{total_devs, NumOfTatalDev}, {public_devs, NumOfPubDev}],
     Devices.
