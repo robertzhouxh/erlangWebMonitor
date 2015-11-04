@@ -201,7 +201,8 @@ get_devices_from_mongo() ->
     TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
     TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
     lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
-    DurationBeginTS = [TodayBeginTimeStamp - 2 * ?DAYTS ,TodayBeginTimeStamp-?DAYTS, TodayBeginTimeStamp],
+    DurationBeginTS = [TodayBeginTimeStamp - 2*?DAYTS ,TodayBeginTimeStamp-?DAYTS, TodayBeginTimeStamp],
+
     %% Selector based on https://github.com/comtihon/mongodb-erlang/issues/52
     SelectorAllDevs = {},
     SelectorPublic = {<<"isPublic">>, true},
@@ -211,10 +212,9 @@ get_devices_from_mongo() ->
     SelectorNewAndPublic = lists:map(fun(Dts) ->
                                              {'$and', [{<<"created_at">>, {'$gte', Dts+?DAYTS}}, {<<"created_at">>, {'$lt', Dts+?DAYTS}},{<<"isPublic">>, true}]} end,
                                      DurationBeginTS),
+    %% search relative numbers of devices 
     NumOfTatalDev = mongo:count(Connection, Collection, SelectorAllDevs),
     NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
-    %% NumNewRegDev = mongo:count(Connection, Collection, SelectorDayReg),
-    %% NumNewAndPub = mongo:count(Connection, Collection, SelectorNewAndPublic),
 
     NumNewRegDev = lists:map(fun(Sel) ->
                                        mongo:count(Connection, Collection, Sel) end,
