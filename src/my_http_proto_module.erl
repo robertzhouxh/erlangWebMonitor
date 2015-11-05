@@ -180,11 +180,17 @@ replvar(AuthSql, Username) ->
 
 get_session_from_redis() ->
     eredis_pool:q({global, pool1}, ["select",?RDDB_INDEX]),
-    {ok, SessionIdKeys} = eredis_pool:q({global, pool1},["keys", "*"]),
-    Sessions = lists:map(fun(SessionIdKey) ->
-                                 {ok, Sessioni} = eredis_pool:q({global, pool1}, ["HGETALL", SessionIdKey]),
-                                 Sessioni end,
-                         SessionIdKeys),
+    {ok, SessIdKeys} = eredis_pool:q({global, pool1},["keys", "web:sess:*"]),
+    lager:info("SessIdKeys ============> ~p~n", [SessIdKeys]),
+    
+    Sessions = lists:map(fun(SessIdKey) ->
+                                 {ok, SessionKeyi} = eredis_pool:q({global, pool1}, ["HKEYS", SessIdKey]),
+                                 {ok, SessionVali} = eredis_pool:q({global, pool1}, ["HVALS", SessIdKey]),
+                                 LT = lists:zip(SessionKeyi, SessionVali)
+                                 end,
+                      SessIdKeys),
+    lager:info("Sessions ========> ~p~n", [Sessions]),
+
     {ok, Sessions}.
 
 
