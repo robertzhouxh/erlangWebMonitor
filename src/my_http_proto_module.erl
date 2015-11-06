@@ -141,50 +141,11 @@ devices_handler(Req) ->
      [],
      [{<<"content-type">>, <<"application/json">>}],
      Req}.
-
-%% ------------------------------------------------------------------------------------------------------
-check_session(Req) ->
-    {SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req), %% read the value of cookie
-    {SomeVal, Req3} = cowboy_session:get(<<"somekey">>, Req2),
-    %% lager:error("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, <<"somekey">>, SomeVal]),
-    {SomeVal, Req3}.
-
-%% generate a cookies in the Req
-set_session(Req) ->
-    Key = <<"somekey">>,
-    Val = <<"someval">>,
-    {ok, Req2} = cowboy_session:set(Key, Val, Req),
-    {ok, Req2}.
-
-redirect_to(Req, Reply, Location) ->
-    {302, Reply, [], [{<<"Location">>, Location}], Req}.
-
-%% @Password is the Hash of the right password
-check_password(PasswordAttempt, PasswordHash) ->
-    StoredPassword = PasswordHash,
-    lager:info("~p:~p check ... StoredPassword ~p", [?MODULE, ?LINE, StoredPassword]),
-    compare_password(PasswordAttempt, StoredPassword).
-
-
-compare_password(PasswordAttempt, PasswordHash) ->
-    {ok, PasswordHash} =:= bcrypt:hashpw(PasswordAttempt, PasswordHash).
-
-%% On success, returns {ok, Hash}.
-hash_password(Password)->
-    {ok, Salt} = bcrypt:gen_salt(),
-    bcrypt:hashpw(Password, Salt).
-
-replvar(AuthSql, Username) ->
-    re:replace(AuthSql, "%u", Username, [global, {return, list}]).
-
-
 get_session_from_redis() ->
     RDDB_INDEX = application:get_env(manager, sess_redis_index, 1),
     eredis_pool:q({global, pool1}, ["select",RDDB_INDEX]),
     {ok, SessAgentKeys} = eredis_pool:q({global, pool1},["keys", "web:agents:*"]),
     lager:info("SessAgentKeys ============> ~p~n", [SessAgentKeys]),
-    %% {ok, AgentKVs} = get_hash_val(SessAgentKeys),
-    %% lager:info("AgentKVs ========> ~p~n", [AgentKVs]),
 
     %% {ok, SessIdKeys} = eredis_pool:q({global, pool1}, ["scan", 0, "match", "web:agents:*", "count", "2"]),
     %% lager:info("SessIdKeys ========> ~p~n", [SessIdKeys]),
@@ -198,7 +159,6 @@ get_session_from_redis() ->
                                          false ->  false
                                      end
                              end,   SessKeys),
-
     SessBwsKeys0 = lists:map(fun(SessKey) ->
                                      case lists:keyfind(<<"browser">>, 1, SessKey) of
                                          {_, LoginBws}->
@@ -209,52 +169,40 @@ get_session_from_redis() ->
 
     SessBwsKeys = lists:delete(false, SessBwsKeys0), 
     SessAppKeys = lists:delete(false, SessAppKeys0), 
-    lager:info("SessBwsKeys0  ========> ~p~n", [SessAppKeys0]),
-    lager:info("SessAppKeys ========> ~p~n", [SessAppKeys]),
-    
     {ok, SessBws} = get_hash_val(SessBwsKeys, <<"browser">>),
     {ok, SessApp} = get_hash_val(SessAppKeys, <<"app">>),
-    lager:info("SessBws  ========> ~p~n", [SessBws]),
-    lager:info("SessApp  ========> ~p~n", [SessApp]),
-
 
     Sessions = lists:append(SessBws,SessApp),
     %% {ok, SessBws}.
     {ok, Sessions}.
 
-
-get_hash_val(Keys) ->
-    KVs = lists:map(fun(Key) ->
-                            {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
-                            {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
-                            LT = lists:zip(Keyi, Vali),
-                            LT 
-                    end,
-                    Keys),
-    lager:info("Values ========> ~p~n", [KVs]),
-    {ok, KVs}.
-
-get_hash_val(Keys, InDev) ->
-    KVs = lists:map(fun(Key) ->
-                            {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
-                            {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
-                            KeyiIn = [login_dev|Keyi],
-                            ValiIn = [InDev|Vali],
-                            lager:info("Keyi ========> ~p~n", [Keyi]),
-                            lager:info("Vali ========> ~p~n", [Vali]),
-
-                            LT = lists:zip(KeyiIn, ValiIn)
-                    end,
-                    Keys),
-    lager:info("Values ========> ~p~n", [KVs]),
-    {ok, KVs}.
-
-
 get_userinfo_from_mysql() ->
     MSQL_USER_TAB = application:get_env(manager, users_table, pre_ucenter_members),
-    {ok, UsersInfo} = emysql:select({MSQL_USER_TAB, [regdate, email, username]}),
-    UsersInfo.
+    SEARCH_DAYS = application:get_env(manager, search_days, 10),
+ 
+    TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
+    TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
+    lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
+    Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
+    DurationBeginTS = lists:map(fun(Day) ->
+                                        TodayBeginTimeStamp - Day * ?DAYTS end, 
+                                Days),
+    SelCmds = lists:map(fun(Dts) ->
+                                       "SELECT COUNT(*) FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " where " ++ " regdate > " ++  integer_to_list(Dts)  ++ " and" ++ " regdate < " ++ integer_to_list(Dts+?DAYTS) end,
+                               DurationBeginTS),
+    lager:info("SelCmds============> ~p~n", [SelCmds]),
 
+    {ok, UsersInfo} = emysql:select({MSQL_USER_TAB, [regdate, email, username]}),
+
+    NumNewUser = lists:map(fun(SelCmd) ->
+                                   {ok,[[{'COUNT(*)',Num}]]} = emysql:sqlquery(SelCmd),
+                                   Num end, 
+                           SelCmds),
+    NumNewUserInfo = [[{number_new_user, NumNewUser}]],
+    %% UsersInfoAndNum = [UsersInfo|NumNewUserInfo],
+    UsersInfoAndNum = lists:append(UsersInfo, NumNewUserInfo),
+    lager:info("UsersInfoAndNum ============> ~p~n", [UsersInfoAndNum]),
+    UsersInfoAndNum.
 
 get_devices_from_mongo() ->
     Pars = application:get_all_env(mongodb),
@@ -304,3 +252,60 @@ get_devices_from_mongo() ->
               {duration_new_devs, NumNewRegDev},
               {duration_new_pub_devs, NumNewAndPub}],
     Devices.
+
+%% ------------------------------------------------------------------------------------------------------
+check_session(Req) ->
+    {SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req), %% read the value of cookie
+    {SomeVal, Req3} = cowboy_session:get(<<"somekey">>, Req2),
+    %% lager:error("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, <<"somekey">>, SomeVal]),
+    {SomeVal, Req3}.
+
+%% generate a cookies in the Req
+set_session(Req) ->
+    Key = <<"somekey">>,
+    Val = <<"someval">>,
+    {ok, Req2} = cowboy_session:set(Key, Val, Req),
+    {ok, Req2}.
+
+redirect_to(Req, Reply, Location) ->
+    {302, Reply, [], [{<<"Location">>, Location}], Req}.
+
+%% @Password is the Hash of the right password
+check_password(PasswordAttempt, PasswordHash) ->
+    StoredPassword = PasswordHash,
+    lager:info("~p:~p check ... StoredPassword ~p", [?MODULE, ?LINE, StoredPassword]),
+    compare_password(PasswordAttempt, StoredPassword).
+
+
+compare_password(PasswordAttempt, PasswordHash) ->
+    {ok, PasswordHash} =:= bcrypt:hashpw(PasswordAttempt, PasswordHash).
+
+%% On success, returns {ok, Hash}.
+hash_password(Password)->
+    {ok, Salt} = bcrypt:gen_salt(),
+    bcrypt:hashpw(Password, Salt).
+
+replvar(AuthSql, Username) ->
+    re:replace(AuthSql, "%u", Username, [global, {return, list}]).
+
+get_hash_val(Keys) ->
+    KVs = lists:map(fun(Key) ->
+                            {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
+                            {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
+                            LT = lists:zip(Keyi, Vali)
+                    end,
+                    Keys),
+    {ok, KVs}.
+
+get_hash_val(Keys, InDev) ->
+    KVs = lists:map(fun(Key) ->
+                            {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
+                            {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
+                            KeyiIn = [login_dev|Keyi],
+                            ValiIn = [InDev|Vali],
+                            LT = lists:zip(KeyiIn, ValiIn)
+                    end,
+                    Keys),
+    {ok, KVs}.
+
+
