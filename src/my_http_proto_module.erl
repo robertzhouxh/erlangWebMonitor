@@ -178,9 +178,31 @@ get_session_from_redis() ->
 
 get_userinfo_from_mysql() ->
     MSQL_USER_TAB = application:get_env(manager, users_table, pre_ucenter_members),
-    {ok, UsersInfo} = emysql:select({MSQL_USER_TAB, [regdate, email, username]}),
-    UsersInfo.
+    SEARCH_DAYS = application:get_env(manager, search_days, 10),
+ 
+    TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
+    TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
+    lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
+    Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
+    DurationBeginTS = lists:map(fun(Day) ->
+                                        TodayBeginTimeStamp - Day * ?DAYTS end, 
+                                Days),
+    SelCmds = lists:map(fun(Dts) ->
+                                       "SELECT COUNT(*) FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " where " ++ " regdate > " ++  integer_to_list(Dts)  ++ " and" ++ " regdate < " ++ integer_to_list(Dts+?DAYTS) end,
+                               DurationBeginTS),
+    lager:info("SelCmds============> ~p~n", [SelCmds]),
 
+    {ok, UsersInfo} = emysql:select({MSQL_USER_TAB, [regdate, email, username]}),
+
+    NumNewUser = lists:map(fun(SelCmd) ->
+                                   {ok,[[{'COUNT(*)',Num}]]} = emysql:sqlquery(SelCmd),
+                                   Num end, 
+                           SelCmds),
+    NumNewUserInfo = [[{number_new_user, NumNewUser}]],
+    %% UsersInfoAndNum = [UsersInfo|NumNewUserInfo],
+    UsersInfoAndNum = lists:append(UsersInfo, NumNewUserInfo),
+    lager:info("UsersInfoAndNum ============> ~p~n", [UsersInfoAndNum]),
+    UsersInfoAndNum.
 
 get_devices_from_mongo() ->
     Pars = application:get_all_env(mongodb),
