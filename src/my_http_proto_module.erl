@@ -10,8 +10,8 @@
 -export([my_http_proto_handler/2]).
 
 %% Information of databases
--define(RDDB_INDEX, 2).            %% Index of redis databases
--define(MSQL_USER_TAB, pre_ucenter_members).  %% Table that stores the Information of users
+%% -define(RDDB_INDEX, 1).            %% Index of redis databases
+-define(MSQL_USER_TAB,).  %% Table that stores the Information of users
 -define(DAYTS, 86400).
 
 my_http_proto_handler(Decoded, Req) ->
@@ -179,7 +179,8 @@ replvar(AuthSql, Username) ->
 
 
 get_session_from_redis() ->
-    eredis_pool:q({global, pool1}, ["select",?RDDB_INDEX]),
+    RDDB_INDEX = application:get_env(manager, sess_redis_index, 1),
+    eredis_pool:q({global, pool1}, ["select",RDDB_INDEX]),
     {ok, SessIdKeys} = eredis_pool:q({global, pool1},["keys", "web:sess:*"]),
     lager:info("SessIdKeys ============> ~p~n", [SessIdKeys]),
     
@@ -195,7 +196,8 @@ get_session_from_redis() ->
 
 
 get_userinfo_from_mysql() ->
-    {ok, UsersInfo} = emysql:select({?MSQL_USER_TAB, [regdate, email, username]}),
+    MSQL_USER_TAB = application:get_env(manager, users_table, pre_ucenter_members),
+    {ok, UsersInfo} = emysql:select({MSQL_USER_TAB, [regdate, email, username]}),
     UsersInfo.
 
 
