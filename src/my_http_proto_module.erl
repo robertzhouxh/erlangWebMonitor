@@ -181,18 +181,73 @@ replvar(AuthSql, Username) ->
 get_session_from_redis() ->
     RDDB_INDEX = application:get_env(manager, sess_redis_index, 1),
     eredis_pool:q({global, pool1}, ["select",RDDB_INDEX]),
-    {ok, SessIdKeys} = eredis_pool:q({global, pool1},["keys", "web:sess:*"]),
-    lager:info("SessIdKeys ============> ~p~n", [SessIdKeys]),
-    
-    Sessions = lists:map(fun(SessIdKey) ->
-                                 {ok, SessionKeyi} = eredis_pool:q({global, pool1}, ["HKEYS", SessIdKey]),
-                                 {ok, SessionVali} = eredis_pool:q({global, pool1}, ["HVALS", SessIdKey]),
-                                 LT = lists:zip(SessionKeyi, SessionVali)
-                                 end,
-                      SessIdKeys),
-    lager:info("Sessions ========> ~p~n", [Sessions]),
+    {ok, SessAgentKeys} = eredis_pool:q({global, pool1},["keys", "web:agents:*"]),
+    lager:info("SessAgentKeys ============> ~p~n", [SessAgentKeys]),
+    %% {ok, AgentKVs} = get_hash_val(SessAgentKeys),
+    %% lager:info("AgentKVs ========> ~p~n", [AgentKVs]),
 
+    %% {ok, SessIdKeys} = eredis_pool:q({global, pool1}, ["scan", 0, "match", "web:agents:*", "count", "2"]),
+    %% lager:info("SessIdKeys ========> ~p~n", [SessIdKeys]),
+
+    {ok, SessKeys} = get_hash_val(SessAgentKeys) ,
+    lager:info("SessKeys ========> ~p~n", [SessKeys]),
+    SessAppKeys0 = lists:map(fun(SessKey) ->
+                                     case lists:keyfind(<<"app">>, 1, SessKey) of
+                                         {_, LoginApp}->
+                                             LoginApp;
+                                         false ->  false
+                                     end
+                             end,   SessKeys),
+
+    SessBwsKeys0 = lists:map(fun(SessKey) ->
+                                     case lists:keyfind(<<"browser">>, 1, SessKey) of
+                                         {_, LoginBws}->
+                                             LoginBws;
+                                         false ->  false
+                                     end
+                             end,  SessKeys),
+
+    SessBwsKeys = lists:delete(false, SessBwsKeys0), 
+    SessAppKeys = lists:delete(false, SessAppKeys0), 
+    lager:info("SessBwsKeys0  ========> ~p~n", [SessAppKeys0]),
+    lager:info("SessAppKeys ========> ~p~n", [SessAppKeys]),
+    
+    {ok, SessBws} = get_hash_val(SessBwsKeys, <<"browser">>),
+    {ok, SessApp} = get_hash_val(SessAppKeys, <<"app">>),
+    lager:info("SessBws  ========> ~p~n", [SessBws]),
+    lager:info("SessApp  ========> ~p~n", [SessApp]),
+
+
+    Sessions = lists:append(SessBws,SessApp),
+    %% {ok, SessBws}.
     {ok, Sessions}.
+
+
+get_hash_val(Keys) ->
+    KVs = lists:map(fun(Key) ->
+                            {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
+                            {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
+                            LT = lists:zip(Keyi, Vali),
+                            LT 
+                    end,
+                    Keys),
+    lager:info("Values ========> ~p~n", [KVs]),
+    {ok, KVs}.
+
+get_hash_val(Keys, InDev) ->
+    KVs = lists:map(fun(Key) ->
+                            {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
+                            {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
+                            KeyiIn = [login_dev|Keyi],
+                            ValiIn = [InDev|Vali],
+                            lager:info("Keyi ========> ~p~n", [Keyi]),
+                            lager:info("Vali ========> ~p~n", [Vali]),
+
+                            LT = lists:zip(KeyiIn, ValiIn)
+                    end,
+                    Keys),
+    lager:info("Values ========> ~p~n", [KVs]),
+    {ok, KVs}.
 
 
 get_userinfo_from_mysql() ->
