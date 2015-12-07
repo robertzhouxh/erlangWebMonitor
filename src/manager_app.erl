@@ -59,8 +59,24 @@
 %% Setting up
 start(_Type, _Args) ->
     Opts = application:get_all_env(manager),
-    %% PrivDir = code:priv_dir(manager),
-    TransOpts     = prop(ranch,  Opts, [{port, 8080}]), %% the port to be connected
+    PrivDir = code:priv_dir(manager),
+    %% TransOpts     = prop(ranch,  Opts,[{port, 8080}]), %% the port to be connected
+    Port = prop(portnum, Opts, 8080),
+    Cacertfile = prop(cacertfile_path, Opts, "/ssl/cowboy-ca.crt"),
+    Certfile = prop(certfile_path, Opts, "/ssl/cowboy-ca.crt"),
+    Keyfile = prop(keyfile_path, Opts, "/ssl/cowboy-ca.crt"),
+
+    TransOpts     = [{port, Port},
+                     {cacertfile, PrivDir ++ Cacertfile},
+                     {certfile, PrivDir ++ Certfile},
+                     {keyfile, PrivDir ++ Keyfile} 
+                     ], %% the port to be connected
+ 
+    %% TransOpts     = [{port, 8080},
+    %%                  {cacertfile, PrivDir ++ "/ssl/cowboy-ca.crt"},
+    %%                  {certfile, PrivDir ++ "/ssl/server.crt"},
+    %%                  {keyfile, PrivDir ++ "/ssl/server.key"} 
+    %%                  ], %% the port to be connected
     Routes        = prop(routes, Opts, []),             %% routing , dispatch
 
     CowboyOpts    = prop(cowboy, Opts, [{nb_acceptors, 100},
@@ -79,8 +95,8 @@ start(_Type, _Args) ->
     %% io:format("~p:~p starting erlangWebmonitor server on prort <  ~p  > ~n", [?MODULE, ?LINE, 8080]),
     lager:info("erlangWebmonitor starting ... on ===> ~n~p~n", [TransOpts]),
     %% lager:info("ProtoOpts2-------------: ~n~p~n", [ProtoOpts2]),
-    %% cowboy:start_https(https, NbAcceptors, TransOpts, ProtoOpts2),
-    cowboy:start_http(http, NbAcceptors, TransOpts, ProtoOpts2),
+    cowboy:start_https(https, NbAcceptors, TransOpts, ProtoOpts2),
+    %% cowboy:start_http(http, NbAcceptors, TransOpts, ProtoOpts2),
 
     %% you can start anyother server at this pointi ===> xxx_server:start_link(),
 
@@ -92,7 +108,6 @@ stop(_State) ->
 %% set username and Password   username:password
 set_auth(Password)->
     {ok, PassHash} = get_hash_password(Password),
-    
     {ok, S} = file:open("../files/auth.dat", write),
     io:format(S, "~s", [PassHash]),
     file:close(S),
