@@ -288,13 +288,14 @@ hash_password(Password)->
 replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
+
 get_hash_val(Keys) ->
     KVs = lists:map(fun(Key) ->
-                            {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
-                            {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
+                            {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]), % is "browser" or "app"
+                            {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]), % is relative sesseionid
                             LT = lists:zip(Keyi, Vali)
                     end,
-                    Keys),
+                    Keys),                      % Keys is  "web:agents:*"
     {ok, KVs}.
 
 get_hash_val(Keys, InDev) ->
