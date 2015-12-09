@@ -93,7 +93,7 @@ login_handler(Req, [{<<"username">>, Username}, {<<"password">>, Password}]) ->
                 end;
         false -> {401,                                   %% Status
                   [{<<"msg">>, <<"Login Failed!">>}],    %% Reply
-                  [],                                    %% Cookie 
+                  [],                                    %% Cookie
                   [{<<"content-type">>, <<"application/json">>}], %% Headers
                   Req}                                            %% ReqTail
     end.
@@ -179,13 +179,13 @@ get_session_from_redis() ->
 get_userinfo_from_mysql() ->
     MSQL_USER_TAB = application:get_env(manager, users_table, pre_ucenter_members),
     SEARCH_DAYS = application:get_env(manager, search_days, 10),
- 
+
     TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
     TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
     lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
     Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
     DurationBeginTS = lists:map(fun(Day) ->
-                                        TodayBeginTimeStamp - Day * ?DAYTS end, 
+                                        TodayBeginTimeStamp - Day * ?DAYTS end,
                                 Days),
     SelCmds = lists:map(fun(Dts) ->
                                        "SELECT COUNT(*) FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " where " ++ " regdate > " ++  integer_to_list(Dts)  ++ " and" ++ " regdate < " ++ integer_to_list(Dts+?DAYTS) end,
@@ -196,7 +196,7 @@ get_userinfo_from_mysql() ->
 
     NumNewUser = lists:map(fun(SelCmd) ->
                                    {ok,[[{'COUNT(*)',Num}]]} = emysql:sqlquery(SelCmd),
-                                   Num end, 
+                                   Num end,
                            SelCmds),
     NumNewUserInfo = [[{number_new_user, NumNewUser}]],
     %% UsersInfoAndNum = [UsersInfo|NumNewUserInfo],
@@ -225,7 +225,7 @@ get_devices_from_mongo() ->
     lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
     Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
     DurationBeginTS = lists:map(fun(Day) ->
-                                        TodayBeginTimeStamp - Day * ?DAYTS end, 
+                                        TodayBeginTimeStamp - Day * ?DAYTS end,
                                 Days),
 
     SelectorAllDevs = {},
@@ -236,7 +236,7 @@ get_devices_from_mongo() ->
     SelectorNewAndPublic = lists:map(fun(Dts) ->
                                              {'$and', [{<<"created_at">>, {'$gte', Dts}}, {<<"created_at">>, {'$lt', Dts+?DAYTS}}, {<<"isPublic">>, true}]} end,
                                      DurationBeginTS),
-    %% search relative numbers of devices 
+    %% search relative numbers of devices
     NumOfTatalDev = mongo:count(Connection, Collection, SelectorAllDevs),
     NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
 
@@ -246,16 +246,15 @@ get_devices_from_mongo() ->
     NumNewAndPub = lists:map(fun(Sel) ->
                                        mongo:count(Connection, Collection, Sel) end,
                              SelectorNewAndPublic),
- 
     Devices =[{total_devs, NumOfTatalDev},
-              {public_devs, NumOfPubDev}, 
+              {public_devs, NumOfPubDev},
               {duration_new_devs, NumNewRegDev},
               {duration_new_pub_devs, NumNewAndPub}],
     Devices.
 
 %% ------------------------------------------------------------------------------------------------------
 check_session(Req) ->
-    {SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req), %% read the value of cookie
+    {_SessionId, Req2} = cowboy_req:cookie(<<"sessionid">>, Req), %% read the value of cookie
     {SomeVal, Req3} = cowboy_session:get(<<"somekey">>, Req2),
     %% lager:error("~p:~p get the SessionId:~p ~n sessionVal:~p", [?MODULE, ?LINE, <<"somekey">>, SomeVal]),
     {SomeVal, Req3}.
@@ -288,12 +287,12 @@ hash_password(Password)->
 replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
-%% get value from agents keys, eg  web:agents:hui@molmc.com 
+%% get value from agents keys, eg  web:agents:hui@molmc.com
 get_hash_val(Keys) ->
     KVs = lists:map(fun(Key) ->
                             {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]), % is "browser" or "app"
                             {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]), % is relative sesseionid
-                            LT = lists:zip(Keyi, Vali)
+                            _LT = lists:zip(Keyi, Vali)
                     end,
                     Keys),                      % Keys is  "web:agents:*"
     {ok, KVs}.  % eg KVs = {"browser" "web:sess:2b8bc142e62c8adaadac08b93a481a44"}
@@ -303,12 +302,9 @@ get_hash_val(Keys, InDev) ->
     KVs = lists:map(fun(Key) ->
                             {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
                             {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
-                            LT = lists:zip([login_dev|Keyi],[InDev|Vali])
+                            _LT = lists:zip([login_dev|Keyi],[InDev|Vali])
                     end,
                     Keys),
-    lager:error("KVs ============> ~p~n", [KVs]),
     FilterFactor = [{login_dev, InDev}],
     KVs_no_undif = lists:delete(FilterFactor, KVs),
     {ok, KVs_no_undif}.
-
-

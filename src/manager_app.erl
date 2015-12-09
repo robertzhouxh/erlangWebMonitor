@@ -69,13 +69,13 @@ start(_Type, _Args) ->
     TransOpts     = [{port, Port},
                      {cacertfile, PrivDir ++ Cacertfile},
                      {certfile, PrivDir ++ Certfile},
-                     {keyfile, PrivDir ++ Keyfile} 
+                     {keyfile, PrivDir ++ Keyfile}
                      ], %% the port to be connected
- 
+
     %% TransOpts     = [{port, 8080},
     %%                  {cacertfile, PrivDir ++ "/ssl/cowboy-ca.crt"},
     %%                  {certfile, PrivDir ++ "/ssl/server.crt"},
-    %%                  {keyfile, PrivDir ++ "/ssl/server.key"} 
+    %%                  {keyfile, PrivDir ++ "/ssl/server.key"}
     %%                  ], %% the port to be connected
     Routes        = prop(routes, Opts, []),             %% routing , dispatch
 
