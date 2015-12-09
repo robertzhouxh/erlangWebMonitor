@@ -145,12 +145,12 @@ get_session_from_redis() ->
     RDDB_INDEX = application:get_env(manager, sess_redis_index, 1),
     eredis_pool:q({global, pool1}, ["select",RDDB_INDEX]),
     {ok, SessAgentKeys} = eredis_pool:q({global, pool1},["keys", "web:agents:*"]),
-    lager:info("SessAgentKeys ============> ~p~n", [SessAgentKeys]),
+    lager:info("SessAgentKeys ============> ~p~n", [SessAgentKeys]), % get all agents keys, eg. web:agents:hui@molmc.com
 
     %% {ok, SessIdKeys} = eredis_pool:q({global, pool1}, ["scan", 0, "match", "web:agents:*", "count", "2"]),
     %% lager:info("SessIdKeys ========> ~p~n", [SessIdKeys]),
 
-    {ok, SessKeys} = get_hash_val(SessAgentKeys) ,
+    {ok, SessKeys} = get_hash_val(SessAgentKeys),
     lager:info("SessKeys ========> ~p~n", [SessKeys]),
     SessAppKeys0 = lists:map(fun(SessKey) ->
                                      case lists:keyfind(<<"app">>, 1, SessKey) of
@@ -167,8 +167,8 @@ get_session_from_redis() ->
                                      end
                              end,  SessKeys),
 
-    SessBwsKeys = lists:delete(false, SessBwsKeys0), 
-    SessAppKeys = lists:delete(false, SessAppKeys0), 
+    SessBwsKeys = lists:delete(false, SessBwsKeys0), % [sessionids] in browser
+    SessAppKeys = lists:delete(false, SessAppKeys0), % [sessionids] in app
     {ok, SessBws} = get_hash_val(SessBwsKeys, <<"browser">>),
     {ok, SessApp} = get_hash_val(SessAppKeys, <<"app">>),
 
@@ -288,7 +288,7 @@ hash_password(Password)->
 replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
-
+%% get value from agents keys, eg  web:agents:hui@molmc.com 
 get_hash_val(Keys) ->
     KVs = lists:map(fun(Key) ->
                             {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]), % is "browser" or "app"
@@ -296,17 +296,19 @@ get_hash_val(Keys) ->
                             LT = lists:zip(Keyi, Vali)
                     end,
                     Keys),                      % Keys is  "web:agents:*"
-    {ok, KVs}.
+    {ok, KVs}.  % eg KVs = {"browser" "web:sess:2b8bc142e62c8adaadac08b93a481a44"}
 
+%% Keys = [sessionids]
 get_hash_val(Keys, InDev) ->
     KVs = lists:map(fun(Key) ->
                             {ok, Keyi} = eredis_pool:q({global, pool1}, ["HKEYS", Key]),
                             {ok, Vali} = eredis_pool:q({global, pool1}, ["HVALS", Key]),
-                            KeyiIn = [login_dev|Keyi],
-                            ValiIn = [InDev|Vali],
-                            LT = lists:zip(KeyiIn, ValiIn)
+                            LT = lists:zip([login_dev|Keyi],[InDev|Vali])
                     end,
                     Keys),
-    {ok, KVs}.
+    lager:error("KVs ============> ~p~n", [KVs]),
+    FilterFactor = [{login_dev, InDev}],
+    KVs_no_undif = lists:delete(FilterFactor, KVs),
+    {ok, KVs_no_undif}.
 
 
