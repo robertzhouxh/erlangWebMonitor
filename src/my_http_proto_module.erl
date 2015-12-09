@@ -20,10 +20,10 @@ my_http_proto_handler(Decoded, Req) ->
     {Method, Req3} = cowboy_req:method(Req2),
 
     {Status, Reply, Cookies, Headers, ReqTail} = enter_handlers(Action,
-                                                      binary_to_list(Method),
-                                                      Req3,
-                                                      Decoded
-                                                     ),
+                                                                binary_to_list(Method),
+                                                                Req3,
+                                                                Decoded
+                                                               ),
     %% lager:info("Req3 ---------------> ~n~p~n", [Req3]),
     lager:info("~p:~p tobe sent to sm:  ~p", [?MODULE, ?LINE, Reply]),
 
@@ -188,8 +188,8 @@ get_userinfo_from_mysql() ->
                                         TodayBeginTimeStamp - Day * ?DAYTS end,
                                 Days),
     SelCmds = lists:map(fun(Dts) ->
-                                       "SELECT COUNT(*) FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " where " ++ " regdate > " ++  integer_to_list(Dts)  ++ " and" ++ " regdate < " ++ integer_to_list(Dts+?DAYTS) end,
-                               DurationBeginTS),
+                                "SELECT COUNT(*) FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " where " ++ " regdate > " ++  integer_to_list(Dts)  ++ " and" ++ " regdate < " ++ integer_to_list(Dts+?DAYTS) end,
+                        DurationBeginTS),
     lager:info("SelCmds============> ~p~n", [SelCmds]),
 
     {ok, UsersInfo} = emysql:select({MSQL_USER_TAB, [regdate, email, username]}),
@@ -241,10 +241,10 @@ get_devices_from_mongo() ->
     NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
 
     NumNewRegDev = lists:map(fun(Sel) ->
-                                       mongo:count(Connection, Collection, Sel) end,
+                                     mongo:count(Connection, Collection, Sel) end,
                              SelectorDayReg),
     NumNewAndPub = lists:map(fun(Sel) ->
-                                       mongo:count(Connection, Collection, Sel) end,
+                                     mongo:count(Connection, Collection, Sel) end,
                              SelectorNewAndPublic),
     Devices =[{total_devs, NumOfTatalDev},
               {public_devs, NumOfPubDev},
