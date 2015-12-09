@@ -7,7 +7,7 @@
 
 -include("sm.hrl").
 
--export([my_http_proto_handler/2]).
+-export([my_http_proto_handler/2, delete_all/2]).
 
 %% Information of databases
 %% -define(RDDB_INDEX, 1).            %% Index of redis databases
@@ -306,5 +306,14 @@ get_hash_val(Keys, InDev) ->
                     end,
                     Keys),
     FilterFactor = [{login_dev, InDev}],
-    KVs_no_undif = lists:delete(FilterFactor, KVs),
+    KVs_no_undif = delete_all(FilterFactor, KVs),
     {ok, KVs_no_undif}.
+
+%% delete all X in list L
+delete_all(X, [X|T]) ->
+    delete_all(X, T);
+delete_all(X, [Y|T]) ->
+    [Y | delete_all(X, T)];
+delete_all(_, []) ->
+    [].
+
