@@ -194,15 +194,15 @@ get_userinfo_from_mysql() ->
 
     {ok, UsersInfo} = emysql:select({MSQL_USER_TAB, [regdate, email, username]}),
 
-    NumNewUser = lists:map(fun(SelCmd) ->
-                                   {ok,[[{'COUNT(*)',Num}]]} = emysql:sqlquery(SelCmd),
-                                   Num end,
-                           SelCmds),
-    NumNewUserInfo = [[{number_new_user, NumNewUser}]],
-    %% UsersInfoAndNum = [UsersInfo|NumNewUserInfo],
-    UsersInfoAndNum = lists:append(UsersInfo, NumNewUserInfo),
-    lager:info("UsersInfoAndNum ============> ~p~n", [UsersInfoAndNum]),
-    UsersInfoAndNum.
+    %NumNewUser = lists:map(fun(SelCmd) ->
+                                   %{ok,[[{'COUNT(*)',Num}]]} = emysql:sqlquery(SelCmd),
+                                   %Num end,
+                           %SelCmds),
+    %NumNewUserInfo = [[{number_new_user, NumNewUser}]],
+    %%% UsersInfoAndNum = [UsersInfo|NumNewUserInfo],
+    %UsersInfoAndNum = lists:append(UsersInfo, NumNewUserInfo),
+    lager:info("UsersInfoAndNum ============> ~p~n", [UsersInfo]),
+    UsersInfo.
 
 get_devices_from_mongo() ->
     Pars = application:get_all_env(mongodb),
