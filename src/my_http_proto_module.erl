@@ -108,7 +108,7 @@ users_handler(Req) ->
     %% fetch the users from the mysql blablabla ...
     MSQL_USER_TAB = application:get_env(manager, users_table, pre_ucenter_members),
     SEARCH_DAYS = application:get_env(manager, search_days, 10),
-    UsersInfo = get_userinfo_from_mysql(MSQL_USER_TAB),
+    UsersInfo = get_userinfo_from_mysql(MSQL_USER_TAB, SEARCH_DAYS),
     Resp = UsersInfo,
 
     {200,
@@ -174,39 +174,27 @@ get_session_from_redis() ->
     {ok, SessBws} = get_hash_val(SessBwsKeys, <<"browser">>),
     {ok, SessApp} = get_hash_val(SessAppKeys, <<"app">>),
 
-    Sessions = lists:append(SessBws,SessApp),
+    NumLogBws = erlang:length(SessBws),
+    NumLogApp = erlang:length(SessApp),
+
+    Sessions =[{total_brower, NumLogBws},
+              {total_app, NumLogApp},
+              {brower_users, SessBws},
+              {app_users, SessApp}],
+    %% Sessions = lists:append(SessBws,SessApp),
     %% {ok, SessBws}.
     {ok, Sessions}.
 
-get_userinfo_from_mysql(MSQL_USER_TAB) ->
-    SelCmd = "SELECT regdate, email, username FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " order by " ++ " regdate desc",
-    {ok, UsersInfo} = emysql:sqlquery(SelCmd),
-    lager:info("UsersInfo ============> ~p~n", [UsersInfo]),
-    UsersInfo.
-
-%% get_days_users(UsersInfo, SEARCH_DAYS) ->
-%%     TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
-%%     TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
-%%     lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
-%%     SearchDayLine = TodayBeginTimeStamp - SEARCH_DAYS * DAYTS,
-
-%%     Days =lists:seq(0, SEARCH_DAYS),
-%%      %% Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
-%%    DayLines = lists:map(fun(Day) ->
-%%                                         TodayBeginTimeStamp - Day * ?DAYTS end,
-%%                                 Days),
-%%     RegDates = lists:map(fun(UserInfo) ->
-%%                                     [_,_,{regdate,RegDate}] = UserInfo end,
-%%                              UsersInfo),
-%%     UserNums = lists:map(fun(DayLine) ->
-%%                              {L1, L2} = lists:partition(fun(A) -> A >= DayLine end, RegDates),
-%%                                  N = erlang:length(L1)
-%%                          end, DayLines).
-
-%% part_num([DL|DLs], L) ->
-%%     {L1, L2} = lists:partition(fun(A) -> A > DL end, L),
-%%     N = erlang:length(L1),
-%%     {N, L2}.
+get_userinfo_from_mysql(MSQL_USER_TAB, SEARCH_DAYS) ->
+    SelTotalNum = "select count(*) from " ++ atom_to_list(MSQL_USER_TAB),
+    SelDaysInfo = "SELECT regdate, email, username FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " order by " ++ " regdate desc limit " ++ integer_to_list(SEARCH_DAYS),
+    {ok, [[{_, NumTotalUsers}]]} = emysql:sqlquery(SelTotalNum),
+    {ok, DaysUsersInfo} = emysql:sqlquery(SelDaysInfo),
+    lager:info("NumTotalUsers ============> ~p~n", [NumTotalUsers]),
+    lager:info("DaysUsersInfo ============> ~p~n", [DaysUsersInfo]),
+    UsersInfo =[{pc_total, NumTotalUsers},
+                {app_total, 0},
+                {days_users, DaysUsersInfo}].
 
 get_devices_from_mongo() ->
     Pars = application:get_all_env(mongodb),
@@ -232,28 +220,29 @@ get_devices_from_mongo() ->
                                         TodayBeginTimeStamp - Day * ?DAYTS end,
                                 Days),
 
-    SelectorAllDevs = {},
-    SelectorPublic = {<<"isPublic">>, true},
-    SelectorDayReg = lists:map(fun(Dts) ->
-                                       {'$and', [{<<"created_at">>, {'$gte', Dts}},{<<"created_at">>, {'$lt', Dts+?DAYTS}}]} end,
-                               DurationBeginTS),
-    SelectorNewAndPublic = lists:map(fun(Dts) ->
-                                             {'$and', [{<<"created_at">>, {'$gte', Dts}}, {<<"created_at">>, {'$lt', Dts+?DAYTS}}, {<<"isPublic">>, true}]} end,
-                                     DurationBeginTS),
+    SelAllDevsNum = {},
+    SelPublicNum = {<<"isPublic">>, true},
+    SelNewRegInfo = {<<"created_at">>, {'$gte', TodayBeginTimeStamp - SEARCH_DAYS * ?DAYTS}},
+    SelNewPubInfo = {'$and', [{<<"created_at">>, {'$gte', TodayBeginTimeStamp - SEARCH_DAYS * ?DAYTS}}, {<<"isPublic">>, true}]},
     %% search relative numbers of devices
-    NumOfTatalDev = mongo:count(Connection, Collection, SelectorAllDevs),
-    NumOfPubDev = mongo:count(Connection, Collection, SelectorPublic),
+    NumOfTatalDev = mongo:count(Connection, Collection, SelAllDevsNum),
+    %% TODO: search the public devices of newly built
+    NumOfPubDev = 0,                            % intead in the future
 
-    NumNewRegDev = lists:map(fun(Sel) ->
-                                     mongo:count(Connection, Collection, Sel) end,
-                             SelectorDayReg),
-    NumNewAndPub = lists:map(fun(Sel) ->
-                                     mongo:count(Connection, Collection, Sel) end,
-                             SelectorNewAndPublic),
+    Cursor1 = mongo:find(Connection, Collection, SelNewRegInfo),
+    RawNewRegInfo = mc_cursor:rest(Cursor1),
+    mc_cursor:close(Cursor1),
+    Cursor2 = mongo:find(Connection, Collection, SelNewPubInfo),
+    RawNewPubInfo = mc_cursor:rest(Cursor2),
+    mc_cursor:close(Cursor2),
+    NewRegInfo = lists:map(fun(M) ->
+                                   maps:remove(<<"_id">>, M) end, RawNewRegInfo),
+    NewPubInfo = lists:map(fun(M) ->
+                                   maps:remove(<<"_id">>, M) end, RawNewPubInfo),
     Devices =[{total_devs, NumOfTatalDev},
               {public_devs, NumOfPubDev},
-              {duration_new_devs, NumNewRegDev},
-              {duration_new_pub_devs, NumNewAndPub}],
+              {days_new_devs, NewRegInfo},
+              {days_pub_devs, NewPubInfo}],
     Devices.
 
 %% ------------------------------------------------------------------------------------------------------
