@@ -179,7 +179,7 @@ get_session_from_redis() ->
     {ok, Sessions}.
 
 get_userinfo_from_mysql(MSQL_USER_TAB) ->
-    SelCmd = "SELECT regdate, email, username FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " order by " ++ " regdate desc> ",
+    SelCmd = "SELECT regdate, email, username FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " order by " ++ " regdate desc",
     {ok, UsersInfo} = emysql:sqlquery(SelCmd),
     lager:info("UsersInfo ============> ~p~n", [UsersInfo]),
     UsersInfo.
