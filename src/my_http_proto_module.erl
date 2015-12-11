@@ -106,7 +106,9 @@ logout_handler(Req) ->
 
 users_handler(Req) ->
     %% fetch the users from the mysql blablabla ...
-    UsersInfo = get_userinfo_from_mysql(),
+    MSQL_USER_TAB = application:get_env(manager, users_table, pre_ucenter_members),
+    SEARCH_DAYS = application:get_env(manager, search_days, 10),
+    UsersInfo = get_userinfo_from_mysql(MSQL_USER_TAB),
     Resp = UsersInfo,
 
     {200,
@@ -176,33 +178,35 @@ get_session_from_redis() ->
     %% {ok, SessBws}.
     {ok, Sessions}.
 
-get_userinfo_from_mysql() ->
-    MSQL_USER_TAB = application:get_env(manager, users_table, pre_ucenter_members),
-    SEARCH_DAYS = application:get_env(manager, search_days, 10),
-
-    TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
-    TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
-    lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
-    Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
-    DurationBeginTS = lists:map(fun(Day) ->
-                                        TodayBeginTimeStamp - Day * ?DAYTS end,
-                                Days),
-    SelCmds = lists:map(fun(Dts) ->
-                                "SELECT COUNT(*) FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " where " ++ " regdate > " ++  integer_to_list(Dts)  ++ " and" ++ " regdate < " ++ integer_to_list(Dts+?DAYTS) end,
-                        DurationBeginTS),
-    lager:info("SelCmds============> ~p~n", [SelCmds]),
-
-    {ok, UsersInfo} = emysql:select({MSQL_USER_TAB, [regdate, email, username]}),
-
-    %NumNewUser = lists:map(fun(SelCmd) ->
-                                   %{ok,[[{'COUNT(*)',Num}]]} = emysql:sqlquery(SelCmd),
-                                   %Num end,
-                           %SelCmds),
-    %NumNewUserInfo = [[{number_new_user, NumNewUser}]],
-    %%% UsersInfoAndNum = [UsersInfo|NumNewUserInfo],
-    %UsersInfoAndNum = lists:append(UsersInfo, NumNewUserInfo),
-    lager:info("UsersInfoAndNum ============> ~p~n", [UsersInfo]),
+get_userinfo_from_mysql(MSQL_USER_TAB) ->
+    SelCmd = "SELECT regdate, email, username FROM " ++ atom_to_list(MSQL_USER_TAB) ++ " order by " ++ " regdate desc> ",
+    {ok, UsersInfo} = emysql:sqlquery(SelCmd),
+    lager:info("UsersInfo ============> ~p~n", [UsersInfo]),
     UsersInfo.
+
+%% get_days_users(UsersInfo, SEARCH_DAYS) ->
+%%     TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
+%%     TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
+%%     lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
+%%     SearchDayLine = TodayBeginTimeStamp - SEARCH_DAYS * DAYTS,
+
+%%     Days =lists:seq(0, SEARCH_DAYS),
+%%      %% Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
+%%    DayLines = lists:map(fun(Day) ->
+%%                                         TodayBeginTimeStamp - Day * ?DAYTS end,
+%%                                 Days),
+%%     RegDates = lists:map(fun(UserInfo) ->
+%%                                     [_,_,{regdate,RegDate}] = UserInfo end,
+%%                              UsersInfo),
+%%     UserNums = lists:map(fun(DayLine) ->
+%%                              {L1, L2} = lists:partition(fun(A) -> A >= DayLine end, RegDates),
+%%                                  N = erlang:length(L1)
+%%                          end, DayLines).
+
+%% part_num([DL|DLs], L) ->
+%%     {L1, L2} = lists:partition(fun(A) -> A > DL end, L),
+%%     N = erlang:length(L1),
+%%     {N, L2}.
 
 get_devices_from_mongo() ->
     Pars = application:get_all_env(mongodb),
@@ -316,4 +320,3 @@ delete_all(X, [Y|T]) ->
     [Y | delete_all(X, T)];
 delete_all(_, []) ->
     [].
-
