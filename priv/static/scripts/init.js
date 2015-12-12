@@ -15,6 +15,8 @@
 
             hbs: "../bower_components/require-handlebars-plugin/hbs",
             handlebars: "../bower_components/require-handlebars-plugin/hbs/handlebars.runtime",
+
+            chartjs: "../bower_components/Chart.js/Chart",
         },
         shim: {
             jquery: {

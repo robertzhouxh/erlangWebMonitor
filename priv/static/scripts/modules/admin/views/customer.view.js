@@ -1,26 +1,75 @@
-define(["hbs!./templates/customer"],
+define([
+    "hbs!./templates/customer",
+    "../models/customer.collection",
+    "../models/online.collection",
+    "../../common/chart.lib"
+],
 
-function(tmplCustomer){
+function(tmplCustomer, Customer, Online, Chart){
     'use strict';
+
+    var UsersView = Marionette.ItemView.extend({
+        el: '.users',
+        ui: {
+            'registOnPC': "#pc_register",
+            'registOnAPP': "#phone_register",
+            'registLine': "#user_register"
+        },
+
+        initialize: function() {
+            this.listenTo(this.model, 'sync', this.sync);
+            this.model.fetch();
+        },
+
+        sync: function(model, resp, options) {
+            $(this.ui.registOnPC).text(model.get("pc_total"));
+            $(this.ui.registOnAPP).text(model.get("app_total"));
+
+            var ctx = $(this.ui.registLine).get(0).getContext("2d");
+            var line = Chart.Line(ctx, model.get("days_users"), {num: 15});
+        },
+    });
+
+    var OnlineView = Marionette.ItemView.extend({
+        el: '.online',
+        ui: {
+            'onlinePC': "#pc_online",
+            'onlineAPP': "#phone_online",
+            'onlineLine': "#user_online"
+        },
+
+        initialize: function() {
+            this.listenTo(this.model, 'sync', this.sync);
+            this.model.fetch();
+        },
+
+        sync: function(model, resp, options) {
+            $(this.ui.onlinePC).text(model.get("total_browser"));
+            $(this.ui.onlineAPP).text(model.get("total_app"));
+
+            var ctx = $(this.ui.onlineLine).get(0).getContext("2d");
+            var line = Chart.Line(ctx, model.get("users"), {num:15, groupby: "login_at"});
+        },
+    });
 
     var customerView = Marionette.LayoutView.extend({
         template: tmplCustomer,
         templateHelpers: {
-            title: "User Online",
+            title: "User&Online",
             subTitle: "Dashboard",
         },
 
-        initialize: function() {
+        regions: {
+            users: '.users',
+            online: '.online'
         },
 
         onRender: function() {
+            var customer = new Customer();
+            var online = new Online();
 
-            this.listenTo(this.model, 'change', this.refresh);
-            this.model.fetch();
-        },
-
-        refresh: function(model, options) {
-            console.log(arguments);
+            new UsersView({model: customer});
+            new OnlineView({model: online});
         },
     });
 

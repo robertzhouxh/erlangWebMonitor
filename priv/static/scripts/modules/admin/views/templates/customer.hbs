@@ -7,7 +7,7 @@
 </section>
 <section class="content">
     <div class="row">
-        <div class="col-sm-6 col-xs-12">
+        <div class="col-sm-6 col-xs-12 users">
             <div class="row">
                 <div class="col-md-6 col-sm-12">
                     <div class="info-box">
@@ -29,10 +29,26 @@
                     </div>
                 </div>
             </div>
+
+            <div class="row">
+                <div class="col-xs-12">
+                    <div class="box box-primary">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">最近注册用户</h3>
+                            <div class="box-tools pull-right"></div>
+                        </div>
+                        <div class="box-body">
+                            <div class="chart">
+                                <canvas id="user_register" style="height:250px"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- user infomation -->
 
-        <div class="col-sm-6 col-xs-12">
+        <div class="col-sm-6 col-xs-12 online">
             <div class="row">
                 <div class="col-md-6 col-sm-12">
                     <div class="info-box">
@@ -54,35 +70,23 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="box box-primary">
-                <div class="box-header with-border">
-                    <h3 class="box-title">最近注册用户</h3>
-                    <div class="box-tools pull-right"></div>
-                </div>
-                <div class="box-body">
-                    <div class="chart">
-                        <canvas id="user_register" style="height:250px"></canvas>
+            <div class="row">
+                <div class="col-xs-12">
+                    <div class="box box-primary">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">最近在线用户</h3>
+                            <div class="box-tools pull-right"></div>
+                        </div>
+                    <div class="box-body">
+                        <div class="chart">
+                            <canvas id="user_online" style="height:250px"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="box box-primary">
-                <div class="box-header with-border">
-                    <h3 class="box-title">最近在线用户</h3>
-                    <div class="box-tools pull-right"></div>
-                </div>
-            <div class="box-body">
-                <div class="chart">
-                    <canvas id="user_online" style="height:250px"></canvas>
-                </div>
-            </div>
-        </div>
-      </div>
+        <!-- online infomation -->
+
     </div>
 </section>
