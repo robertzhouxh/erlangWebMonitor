@@ -5,6 +5,6 @@ GRTAGS
 GTAGS
 ebin/
 priv/npm-debug.log
-rel/manager/ 
+rel/manager/
 .rebar/
 

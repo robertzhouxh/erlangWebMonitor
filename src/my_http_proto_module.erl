@@ -177,7 +177,7 @@ get_session_from_redis() ->
     NumLogBws = erlang:length(SessBws),
     NumLogApp = erlang:length(SessApp),
 
-    Sessions =[{total_brower, NumLogBws},
+    Sessions =[{total_browser, NumLogBws},
               {total_app, NumLogApp},
               {users, lists:append(SessBws,SessApp)}],
     {ok, Sessions}.
