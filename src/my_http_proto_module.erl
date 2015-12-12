@@ -179,10 +179,7 @@ get_session_from_redis() ->
 
     Sessions =[{total_brower, NumLogBws},
               {total_app, NumLogApp},
-              {brower_users, SessBws},
-              {app_users, SessApp}],
-    %% Sessions = lists:append(SessBws,SessApp),
-    %% {ok, SessBws}.
+              {users, lists:append(SessBws,SessApp)}],
     {ok, Sessions}.
 
 get_userinfo_from_mysql(MSQL_USER_TAB, SEARCH_DAYS) ->
