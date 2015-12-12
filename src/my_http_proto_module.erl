@@ -257,7 +257,7 @@ set_session(Req) ->
     {ok, Req2}.
 
 redirect_to(Req, Reply, Location) ->
-    {302, Reply, [], [{<<"Location">>, Location}], Req}.
+    {401, Reply, [], [{<<"Location">>, Location}], Req}.
 
 %% @Password is the Hash of the right password
 check_password(PasswordAttempt, PasswordHash) ->
