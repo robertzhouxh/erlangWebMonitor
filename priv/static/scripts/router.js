@@ -21,6 +21,9 @@ function(Marionette) {
     router.route(/^(.*?)$/, doDispatch);
     router.route("", doDefault);
 
+    //router.on('route', function(name, args){
+    //});
+
     function doDispatch(hash) {
         hash = hash || 'index';
         var uri = hash.replace(/(^\/)|(\/$)/g, '').split('/');

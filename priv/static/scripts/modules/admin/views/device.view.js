@@ -22,6 +22,7 @@ function(tmplDevice, Chart){
 
         initialize: function() {
             this.listenTo(this.model, 'sync', this.sync);
+            this.listenTo(this.model, 'error', syncError);
             this.model.fetch();
         },
 
@@ -36,6 +37,10 @@ function(tmplDevice, Chart){
             $(this.ui.numPublic).text(model.get("public_devs"));
         },
     });
+
+    function syncError(model, resp, options) {
+         Backbone.history.navigate('', {trigger: true});
+    }
 
     return deviceView;
 });

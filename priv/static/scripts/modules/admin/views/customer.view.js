@@ -18,6 +18,8 @@ function(tmplCustomer, Customer, Online, Chart){
 
         initialize: function() {
             this.listenTo(this.model, 'sync', this.sync);
+            this.listenTo(this.model, 'error', syncError);
+
             this.model.fetch();
         },
 
@@ -72,6 +74,10 @@ function(tmplCustomer, Customer, Online, Chart){
             new OnlineView({model: online});
         },
     });
+
+    function syncError(model, resp, options) {
+        Backbone.history.navigate('', {trigger: true});
+    }
 
     return customerView;
 });
