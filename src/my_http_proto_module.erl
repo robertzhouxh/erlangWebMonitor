@@ -42,7 +42,7 @@ enter_handlers(Action, Method, Req, Payload) ->
             lager:info("starting ~p process", [Action]),
             case check_session(Req) of
                 {undefined, Req2} ->
-                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                    redirect_to(Req2, <<"Login again!">>, ?LOGIN_URL);
                 {_SessionVal, Req2} ->
                     users_handler(Req2)
             end;
@@ -50,7 +50,7 @@ enter_handlers(Action, Method, Req, Payload) ->
             lager:info("starting ~p process", [Action]),
             case check_session(Req) of
                 {undefined, Req2} ->
-                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                    redirect_to(Req2, <<"Login again!">>, ?LOGIN_URL);
                 {_SessionVal, Req2} ->
                     online_handler(Req2)
             end;
@@ -58,14 +58,13 @@ enter_handlers(Action, Method, Req, Payload) ->
             lager:info("starting ~p process", [Action]),
             case check_session(Req) of
                 {undefined, Req2} ->
-                    redirect_to(Req2, <<>>, ?LOGIN_URL);
+                    redirect_to(Req2, <<"Login again">>, ?LOGIN_URL);
                 {_SessionVal, Req2} ->
                     devices_handler(Req2)
             end;
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
             redirect_to(Req, Payload, ?INDEX_URL)
-
     end.
 
 
@@ -257,14 +256,18 @@ set_session(Req) ->
     {ok, Req2}.
 
 redirect_to(Req, Reply, Location) ->
-    {401, Reply, [], [{<<"Location">>, Location}], Req}.
+    %% {401, Reply, [], [{<<"Location">>, Location}], Req},
+    {401,                                   %% Status
+     [{<<"msg">>, <<"Login again!">>}],    %% Reply
+     [],                                    %% Cookie
+     [{<<"content-type">>, <<"application/json">>}], %% Headers
+     Req}.
 
 %% @Password is the Hash of the right password
 check_password(PasswordAttempt, PasswordHash) ->
     StoredPassword = PasswordHash,
     lager:info("~p:~p check ... StoredPassword ~p", [?MODULE, ?LINE, StoredPassword]),
     compare_password(PasswordAttempt, StoredPassword).
-
 
 compare_password(PasswordAttempt, PasswordHash) ->
     {ok, PasswordHash} =:= bcrypt:hashpw(PasswordAttempt, PasswordHash).
