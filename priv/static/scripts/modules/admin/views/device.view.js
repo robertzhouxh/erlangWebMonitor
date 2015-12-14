@@ -39,7 +39,7 @@ function(tmplDevice, Chart){
     });
 
     function syncError(model, resp, options) {
-         Backbone.history.navigate('', {trigger: true});
+        Backbone.history.navigate('', {trigger: true});
     }
 
     return deviceView;
