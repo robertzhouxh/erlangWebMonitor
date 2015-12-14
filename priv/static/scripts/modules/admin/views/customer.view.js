@@ -17,13 +17,13 @@ function(tmplCustomer, Customer, Online, Chart){
         },
 
         initialize: function() {
-            this.listenTo(this.model, 'sync', this.sync);
+            this.listenTo(this.model, 'change', this.sync);
             this.listenTo(this.model, 'error', syncError);
 
             this.model.fetch();
         },
 
-        sync: function(model, resp, options) {
+        sync: function(model, options) {
             $(this.ui.registOnPC).text(model.get("pc_total"));
             $(this.ui.registOnAPP).text(model.get("app_total"));
 
@@ -41,11 +41,11 @@ function(tmplCustomer, Customer, Online, Chart){
         },
 
         initialize: function() {
-            this.listenTo(this.model, 'sync', this.sync);
+            this.listenTo(this.model, 'change', this.sync);
             this.model.fetch();
         },
 
-        sync: function(model, resp, options) {
+        sync: function(model, options) {
             $(this.ui.onlinePC).text(model.get("total_browser"));
             $(this.ui.onlineAPP).text(model.get("total_app"));
 
