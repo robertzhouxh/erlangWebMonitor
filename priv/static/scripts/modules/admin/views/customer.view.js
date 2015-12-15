@@ -28,7 +28,7 @@ function(tmplCustomer, Customer, Online, Chart){
             $(this.ui.registOnAPP).text(model.get("app_total"));
 
             var ctx = $(this.ui.registLine).get(0).getContext("2d");
-            var line = Chart.Line(ctx, model.get("days_users"), {num: 15});
+            var bar = Chart.Bar(ctx, model.get("days_users"), {num: 15});
         },
     });
 
@@ -50,14 +50,14 @@ function(tmplCustomer, Customer, Online, Chart){
             $(this.ui.onlineAPP).text(model.get("total_app"));
 
             var ctx = $(this.ui.onlineLine).get(0).getContext("2d");
-            var line = Chart.Line(ctx, model.get("users"), {num:15, groupby: "login_at"});
+            var bar = Chart.Bar(ctx, model.get("users"), {num:15, groupby: "login_at"});
         },
     });
 
     var customerView = Marionette.LayoutView.extend({
         template: tmplCustomer,
         templateHelpers: {
-            title: "User&Online",
+            title: "用户统计",
             subTitle: "Dashboard",
         },
 

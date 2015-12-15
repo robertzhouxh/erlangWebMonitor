@@ -9,7 +9,7 @@ function(tmplDevice, Chart){
     var deviceView = Marionette.LayoutView.extend({
         template: tmplDevice,
         templateHelpers: {
-            title: "Devices",
+            title: "设备统计",
             subTitle: "Dashboard",
         },
 
@@ -28,10 +28,10 @@ function(tmplDevice, Chart){
 
         sync: function(model, options) {
             var ctx = $(this.ui.lineTotal).get(0).getContext("2d");
-            var line = Chart.Line(ctx, model.get('days_new_devs'), {groupby: 'created_at', num: 15});
+            var bar = Chart.Bar(ctx, model.get('days_new_devs'), {groupby: 'created_at', num: 15});
 
             ctx = $(this.ui.linePublic).get(0).getContext("2d");
-            line = Chart.Line(ctx, model.get('days_public_devs'), {groupby: 'created_at', num: 15});
+            bar = Chart.Bar(ctx, model.get('days_public_devs'), {groupby: 'created_at', num: 15});
 
             $(this.ui.numTotal).text(model.get("total_devs"));
             $(this.ui.numPublic).text(model.get("public_devs"));

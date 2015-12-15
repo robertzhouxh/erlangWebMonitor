@@ -35,13 +35,60 @@ function(Chart) {
         });
     }
 
+    function drawBar(ctx, data, options) {
+        var Chartjs = Chart.noConflict(),
+            chartData;
+
+            options = _.extend({
+                num: 30,
+                groupby: "regdate",
+            }, options);
+        options.type = 'bar';
+        chartData = getChartData(data, options);
+
+        return new Chartjs(ctx).Bar(chartData, {
+            barShowStroke: false,
+        });
+    }
+
+    function getChartColor(type) {
+        switch(type) {
+            case 'line':
+                return {
+                    fillColor: "rgba(220,220,220,0.2)",
+                    strokeColor: "rgba(220,220,220,1)",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#fff",
+                    pointHighlightFill: "#fff",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                };
+            case 'bar':
+                return {
+                    fillColor: "rgba(151,87,205,0.5)",
+                    strokeColor: "rgba(151,87,205,0.8)",
+                    highlightFill: "rgba(151,87,205,0.75)",
+                    highlightStroke: "rgba(151,87,205,1)",
+                };
+            default:
+                return {
+                    fillColor: "rgba(220,220,220,0.2)",
+                    strokeColor: "rgba(220,220,220,1)",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#fff",
+                    pointHighlightFill: "#fff",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                };
+        }
+    }
+
     function getChartData(collection, options) {
          var label,
              labels = [],
              today,
              current,
              groupby,
-             data = [];
+             data = [],
+             dataset;
 
         today = new Date();
         today.setDate(today.getDate()+1);
@@ -67,21 +114,17 @@ function(Chart) {
             }
         }
 
+        dataset = getChartColor(options.type);
+        dataset.data = data;
+
         return {
             labels: labels,
-            datasets: [{
-                fillColor: "rgba(220,220,220,0.2)",
-                strokeColor: "rgba(220,220,220,1)",
-                pointColor: "rgba(220,220,220,1)",
-                pointStrokeColor: "#fff",
-                pointHighlightFill: "#fff",
-                pointHighlightStroke: "rgba(220,220,220,1)",
-                data: data
-            }]
+            datasets: [dataset]
         };
     }
 
     return {
         Line: drawLine,
+        Bar: drawBar,
     };
 });
