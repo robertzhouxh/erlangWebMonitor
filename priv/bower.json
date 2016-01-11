@@ -33,6 +33,8 @@
     "require-handlebars-plugin": "~1.0.0",
     "iCheck": "icheck#~1.0.2",
     "Chart.js": "~1.0.2",
-    "jquery.slimscroll": "~1.3.7"
+    "jquery.slimscroll": "~1.3.7",
+    "datatables": "~1.10.10",
+    "datatables.net": "~1.10.10"
   }
 }

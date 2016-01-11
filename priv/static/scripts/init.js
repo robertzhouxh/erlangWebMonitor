@@ -17,6 +17,8 @@
             handlebars: "../bower_components/require-handlebars-plugin/hbs/handlebars.runtime",
 
             chartjs: "../bower_components/Chart.js/Chart",
+            "datatables.net": "../bower_components/datatables.net/js/jquery.dataTables",
+            "datatables.bootstrap": "../bower_components/datatables/media/js/dataTables.bootstrap",
         },
         shim: {
             jquery: {
@@ -29,6 +31,8 @@
                 deps: ["jquery", "lodash"],
                 exports: "Backbone"
             },
+            "datatables.net": ["jquery"],
+            "datatables.bootstrap": ["datatables.net"],
         },
         hbs: {
             helpers: true,
