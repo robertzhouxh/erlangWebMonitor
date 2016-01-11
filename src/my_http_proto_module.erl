@@ -5,9 +5,9 @@
 
 -module(my_http_proto_module).
 
--include("sm.hrl").
+-include("../include/sm.hrl").
 
--export([my_http_proto_handler/2, delete_all/2]).
+-export([my_http_proto_handler/2, delete_all/2, mongofind/3]).
 
 %% Information of databases
 %% -define(RDDB_INDEX, 1).            %% Index of redis databases
@@ -61,6 +61,14 @@ enter_handlers(Action, Method, Req, Payload) ->
                     redirect_to(Req2, <<"Login again">>, ?LOGIN_URL);
                 {_SessionVal, Req2} ->
                     devices_handler(Req2)
+            end;
+        <<"logs">> when Method =:= "GET" ->
+            lager:info("starting ~p process", [Action]),
+            case check_session(Req) of
+                {undefined, Req2} ->
+                    redirect_to(Req2, <<"Login again">>, ?LOGIN_URL);
+                {_SessionVal, Req2} ->
+                    log_handler(Req2)
             end;
         _ ->
             lager:info("Invalid Request For ~p and redirect to URL: ~s", [Action, "/"]),
@@ -142,6 +150,17 @@ devices_handler(Req) ->
      [],
      [{<<"content-type">>, <<"application/json">>}],
      Req}.
+
+log_handler(Req)->
+    LogInfo = get_logs_from_mongo(),
+    Resp = LogInfo,
+    lager:info("Log msg ==========> ~n~p", [Resp]),
+    {200,
+     Resp,
+     [],
+     [{<<"content-type">>, <<"application/json">>}],
+     Req}.
+
 get_session_from_redis() ->
     RDDB_INDEX = application:get_env(manager, sess_redis_index, 1),
     eredis_pool:q({global, pool1}, ["select",RDDB_INDEX]),
@@ -211,35 +230,58 @@ get_devices_from_mongo() ->
     TodayBeginTimeYMDHMS = {erlang:date(), {0,0,0}},
     TodayBeginTimeStamp = calendar:datetime_to_gregorian_seconds(TodayBeginTimeYMDHMS) - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
     lager:info("DayBeginTimeStamp ============> ~p~n", [TodayBeginTimeStamp]),
-    Days =lists:reverse(lists:seq(0, SEARCH_DAYS)),
-    DurationBeginTS = lists:map(fun(Day) ->
-                                        TodayBeginTimeStamp - Day * ?DAYTS end,
-                                Days),
 
     SelAllDevsNum = {},
-    SelPublicNum = {<<"isPublic">>, true},
     SelNewRegInfo = {<<"created_at">>, {'$gte', TodayBeginTimeStamp - SEARCH_DAYS * ?DAYTS}},
     SelNewPubInfo = {'$and', [{<<"created_at">>, {'$gte', TodayBeginTimeStamp - SEARCH_DAYS * ?DAYTS}}, {<<"isPublic">>, true}]},
     %% search relative numbers of devices
     NumOfTatalDev = mongo:count(Connection, Collection, SelAllDevsNum),
     %% TODO: search the public devices of newly built
     NumOfPubDev = 0,                            % intead in the future
+    RawNewRegInfo = mongofind(Connection, Collection, SelNewRegInfo),
+    lager:info("RawNewRegInfo ============> ~p~n", [RawNewRegInfo]),
 
-    Cursor1 = mongo:find(Connection, Collection, SelNewRegInfo),
-    RawNewRegInfo = mc_cursor:rest(Cursor1),
-    mc_cursor:close(Cursor1),
-    Cursor2 = mongo:find(Connection, Collection, SelNewPubInfo),
-    RawNewPubInfo = mc_cursor:rest(Cursor2),
-    mc_cursor:close(Cursor2),
+    RawNewPubInfo = mongofind(Connection, Collection, SelNewPubInfo),
+    lager:info("RawNewPubInfo============> ~p~n", [RawNewPubInfo]),
+
     NewRegInfo = lists:map(fun(M) ->
                                    maps:remove(<<"_id">>, M) end, RawNewRegInfo),
     NewPubInfo = lists:map(fun(M) ->
                                    maps:remove(<<"_id">>, M) end, RawNewPubInfo),
-    Devices =[{total_devs, NumOfTatalDev},
+    lager:info("NewPubInfo ============> ~p~n", [NewPubInfo]),
+
+    _Devices =[{total_devs, NumOfTatalDev},
               {public_devs, NumOfPubDev},
               {days_new_devs, NewRegInfo},
-              {days_pub_devs, NewPubInfo}],
-    Devices.
+              {days_pub_devs, NewPubInfo}].
+
+
+get_logs_from_mongo()->
+    {ok, Pars} = application:get_env(manager, readlog),
+    lager:info("Pars ============> ~p~n", [Pars]),
+
+    Host = lists:keyfind(host,1,Pars),
+    Port = lists:keyfind(port, 1, Pars),
+    Database = lists:keyfind(database, 1, Pars),
+    {_, Collection} = lists:keyfind(collection, 1, Pars),
+    lager:info("Database ============> ~p~n", [Database]),
+    lager:info("Pars ============> ~p~n", [Pars]),
+    lager:info("Host ============> ~p~n", [Host]),
+    lager:info("Port ============> ~p~n", [Port]),
+    lager:info("Collection ============> ~p~n", [Collection]),
+
+    {ok, Connection} = mongo:connect ([Database, Host, Port]),
+    lager:info("Connection ============> ~p~n", [Connection]),
+
+    RawLogInfo = mongofind(Connection, Collection, {}),
+    lager:info("RawLogInfo ============> ~p~n", [RawLogInfo]),
+
+    LogInfo = lists:map(fun(M) ->
+                                maps:remove(<<"_id">>, M)
+                        end, RawLogInfo),
+    lager:info("LogInfo ============> ~p~n", [LogInfo]),
+    LogInfo.
+    %% _Log = [{logs, LogInfo}].
 
 %% ------------------------------------------------------------------------------------------------------
 check_session(Req) ->
@@ -301,6 +343,12 @@ get_hash_val(Keys, InDev) ->
     FilterFactor = [{login_dev, InDev}],
     KVs_no_undif = delete_all(FilterFactor, KVs),
     {ok, KVs_no_undif}.
+
+mongofind(Connection, Collection, Selector)->
+    Cursor = mongo:find(Connection, Collection, Selector),
+    Result = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Result.
 
 %% delete all X in list L
 delete_all(X, [X|T]) ->
