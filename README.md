@@ -156,9 +156,16 @@ add your own pool and relative message, especially in file eredis_pool.app.arc, 
         ]}
 ]}.
 
-
 `````````````````````````````````````````
-
+`````````````````````````
+3) install nvm and source .xxshrc or others
+    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.30.1/install.sh | bash
+4) install node use 'nvm install node-version' 
+    nvm install 5.4.0
+5) install bower and source .xxshrc and use it to install deps
+    npm -g i bower
+6) do 'bower install'
+`````````````````````````
 you can edit the **manager block** to change the cowboy listenner port and any other options.
 and then execute in the console:
 
@@ -189,6 +196,9 @@ get information of online users
 */v2/devices GET*
 
 get information of devices (including total devices, total public devices, new devices and new public devices in some duration). 
+
+*/v2/logs GET*
+get the information of logs from mongodb.
 
 Enjoy!
 
