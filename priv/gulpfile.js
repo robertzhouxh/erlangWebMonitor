@@ -9,7 +9,7 @@ var paths = {
 };
 
 gulp.task('clean', function() {
-  return gulp.src(paths.dist)
+  return gulp.src(paths.dist + '**')
     .pipe(clean());
 });
 
@@ -23,11 +23,14 @@ gulp.task('copy', function() {
   gulp.src(['bower_components/**/*.css'], {cwd: paths.app})
     .pipe(gulp.dest(paths.dist + 'bower_components'));
 
+  gulp.src(['bower_components/**/*.woff2', 'bower_components/**/*.ttf', 'bower_components/**/*.woff'], {cwd: paths.app})
+    .pipe(gulp.dest(paths.dist + 'bower_components'));
+
   gulp.src(['images/**/*.png'], {cwd: paths.app})
     .pipe(gulp.dest(paths.dist + 'images'));
 
-  gulp.src(['bower_components/requirejs'], {cwd: paths.app})
-    .pipe(gulp.dest(paths.dist + 'bower_components'));
+  gulp.src(['bower_components/requirejs/*.js'], {cwd: paths.app})
+    .pipe(gulp.dest(paths.dist + 'bower_components/requirejs'));
 });
 
 gulp.task('build', function() {
@@ -44,8 +47,8 @@ gulp.task('build', function() {
         'modules/admin/openresty.ctrl'
       ]
     }))
-    .pipe(gulp.dest('./static/script'));
+    .pipe(gulp.dest('./static/scripts'));
 });
 
-gulp.task('default', ['clean', 'build', 'copy'], function() {
+gulp.task('default', ['copy', 'build'], function() {
 });
