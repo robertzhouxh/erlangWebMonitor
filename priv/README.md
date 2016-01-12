@@ -7,4 +7,4 @@
 *  cd erlangWebMonitor/priv
 *  bower install
 *  npm install
-*  npm build
+*  npm run build
