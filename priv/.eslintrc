@@ -1,0 +1,20 @@
+{
+  "extends": "google",
+  "env": {
+    "amd": true,
+    "browser": true,
+    "jquery": true,
+  },
+  "rules": {
+    "comma-dangle": [2, "always-multiline"],
+    "require-jsdoc": 0,
+    "one-var": 0,
+    "max-len": 0,
+    "camelcase": 0,
+  },
+  "globals": {
+    "Backbone": true,
+    "Marionette": true,
+    "_": true,
+  }
+}
