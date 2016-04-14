@@ -1,0 +1,27 @@
+{
+  "name": "monitor",
+  "version": "1.0.0",
+  "description": "erlang web monitor",
+  "main": "index.js",
+  "scripts": {
+    "build": "gulp",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huangguozhen/erlangWebMonitor.git"
+  },
+  "author": "huangguozhen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/huangguozhen/erlangWebMonitor/issues"
+  },
+  "homepage": "https://github.com/huangguozhen/erlangWebMonitor#readme",
+  "devDependencies": {
+    "eslint": "^1.10.3",
+    "eslint-config-google": "^0.3.0",
+    "gulp": "^3.9.0",
+    "gulp-clean": "^0.3.1",
+    "gulp-requirejs-optimize": "^0.3.1"
+  }
+}

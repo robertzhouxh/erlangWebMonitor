@@ -6,7 +6,7 @@ REBAR    = $(BASE_DIR)/rebar
 DIST     = $(BASE_DIR)/rel/$(APP)
 
 
-all: deps compile
+all: deps compile rel
 
 deps:
 	@$(REBAR) get-deps
@@ -15,7 +15,7 @@ compile:
 	@$(REBAR) compile
 
 rel: compile
-	#@cd rel && $(REBAR) generate -f
+	@cd rel && $(REBAR) generate -f
 	$(REBAR) generate
 
 xref:

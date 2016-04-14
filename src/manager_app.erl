@@ -60,8 +60,8 @@
 start(_Type, _Args) ->
     Opts = application:get_all_env(manager),
     PrivDir = code:priv_dir(manager),
-    %% TransOpts     = prop(ranch,  Opts,[{port, 8080}]), %% the port to be connected
-    Port = prop(portnum, Opts, 8080),
+    %% TransOpts     = prop(ranch,  Opts,[{port, 443}]), %% the port to be connected
+    Port = prop(portnum, Opts, 443),
     Cacertfile = prop(cacertfile_path, Opts, "/ssl/cowboy-ca.crt"),
     Certfile = prop(certfile_path, Opts, "/ssl/cowboy-ca.crt"),
     Keyfile = prop(keyfile_path, Opts, "/ssl/cowboy-ca.crt"),
@@ -72,7 +72,7 @@ start(_Type, _Args) ->
                      {keyfile, PrivDir ++ Keyfile}
                      ], %% the port to be connected
 
-    %% TransOpts     = [{port, 8080},
+    %% TransOpts     = [{port, 443}],
     %%                  {cacertfile, PrivDir ++ "/ssl/cowboy-ca.crt"},
     %%                  {certfile, PrivDir ++ "/ssl/server.crt"},
     %%                  {keyfile, PrivDir ++ "/ssl/server.key"}

@@ -2,7 +2,7 @@
 -author("robertzhouxh@gmail.com").
 -behaviour(cowboy_http_handler).
 
--include("sm.hrl").
+-include("../include/sm.hrl").
 
 -export([init/3, handle/2, terminate/3]).
 
@@ -41,8 +41,7 @@ handle(Req, State=#state{options=Opts}) ->
                           <<"PUT">> -> Protocol:decode(Body, Format);
                           _ -> <<>>
                       end,
-            lager:info("~p:~p ===>~nBody:~p~nFrmat:~p~nHeaders:~p~nDecoded:~p~n", [?MODULE, ?LINE, Body, Format, Headers, Decoded]),
-
+            %% lager:info("~p:~p ===>~nBody:~p~nFrmat:~p~nHeaders:~p~nDecoded:~p~n", [?MODULE, ?LINE, Body, Format, Headers, Decoded]),
             case Protocol:supports_format(Format) of
                 true ->
                     case Module:Function(Decoded, Req) of
@@ -117,7 +116,7 @@ set_cookies([Cookie|Cookies], Req) ->
 
 get_response(#sm_response{status=Status, headers=Headers, body=Body, cookies=Cookies}, Req) ->
     Req2 = set_cookies(Cookies, Req),
-    lager:info("~p:~p ===> Body:~p~n", [?MODULE, ?LINE,  Body]),
+    %% lager:info("~p:~p ===> Body:~p~n", [?MODULE, ?LINE,  Body]),
     {ok, Req3} = cowboy_req:reply(Status, Headers, Body, Req2),
     %% lager:error("~p:~p ===> req3:~p~n", [?MODULE, ?LINE,  Req3]),
     Req3.

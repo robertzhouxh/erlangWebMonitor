@@ -1,10 +1,11 @@
 priv/static/bower_components
+priv/node_modules
 deps
 GPATH
 GRTAGS
 GTAGS
 ebin/
 priv/npm-debug.log
-rel/manager/ 
+rel/manager/
 .rebar/
 
